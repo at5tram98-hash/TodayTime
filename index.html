@@ -14,15 +14,28 @@
 <link rel="apple-touch-icon" sizes="180x180" href="/TodayTime/apple-touch-icon.png">
 <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
 <script>
+  window.TodayTimeOneSignal = null;
+  window.TodayTimeOneSignalReady = false;
+  window.TodayTimeOneSignalError = null;
   window.OneSignalDeferred = window.OneSignalDeferred || [];
-  OneSignalDeferred.push(async function(OneSignal) {
-    await OneSignal.init({
+  OneSignalDeferred.push(function(OneSignal) {
+    // Expose the SDK immediately so the UI does not remain stuck on 「準備中」
+    // while OneSignal finishes initialization in the background.
+    window.TodayTimeOneSignal = OneSignal;
+    Promise.resolve(OneSignal.init({
       appId: "048a698f-32ac-4a9a-bbaa-398b61959754",
       serviceWorkerPath: "TodayTime/OneSignalSDKWorker.js",
       serviceWorkerParam: { scope: "/TodayTime/" },
       notifyButton: { enable: false }
+    })).then(function(){
+      window.TodayTimeOneSignalReady = true;
+      window.TodayTimeOneSignalError = null;
+      window.dispatchEvent(new Event('tt-onesignal-state-change'));
+    }).catch(function(err){
+      console.error('OneSignal init failed', err);
+      window.TodayTimeOneSignalError = String(err && (err.message || err) || 'init_failed');
+      window.dispatchEvent(new Event('tt-onesignal-state-change'));
     });
-    window.TodayTimeOneSignal = OneSignal;
   });
 </script>
 
@@ -3250,6 +3263,13 @@ function openPlanningActionMenu(anchor){openActionSheet([{label:'TRP（今日の
 /* ===== TodayTime Web Push settings (OneSignal) ===== */
 function ttIsStandalone(){return !!(window.matchMedia?.('(display-mode: standalone)')?.matches||navigator.standalone===true)}
 function ttOneSignal(){return window.TodayTimeOneSignal||null}
+window.addEventListener('tt-onesignal-state-change',()=>{
+  try{
+    const fp=document.getElementById('fullPage');
+    const title=fp?.querySelector?.('.full-heading h1')?.textContent||'';
+    if(title==='通知'){closeFullPage();setTimeout(openNotificationSettings,80)}
+  }catch{}
+});
 function ttPushSnapshot(){
   const os=ttOneSignal();
   if(!os)return {ready:false,supported:false,permission:false,optedIn:false,id:null,standalone:ttIsStandalone()};

@@ -11,18 +11,31 @@
 <title>TodayTime 2.0 Final</title>
 <!-- TodayTime Web Push / PWA -->
 <link rel="manifest" href="/TodayTime/manifest.json">
-<link rel="apple-touch-icon" href="/TodayTime/icon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/TodayTime/apple-touch-icon.png">
 <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
 <script>
+  window.TodayTimeOneSignal = null;
+  window.TodayTimeOneSignalReady = false;
+  window.TodayTimeOneSignalError = null;
   window.OneSignalDeferred = window.OneSignalDeferred || [];
-  OneSignalDeferred.push(async function(OneSignal) {
-    await OneSignal.init({
+  OneSignalDeferred.push(function(OneSignal) {
+    // Expose the SDK immediately so the UI does not remain stuck on 「準備中」
+    // while OneSignal finishes initialization in the background.
+    window.TodayTimeOneSignal = OneSignal;
+    Promise.resolve(OneSignal.init({
       appId: "048a698f-32ac-4a9a-bbaa-398b61959754",
       serviceWorkerPath: "TodayTime/OneSignalSDKWorker.js",
       serviceWorkerParam: { scope: "/TodayTime/" },
       notifyButton: { enable: false }
+    })).then(function(){
+      window.TodayTimeOneSignalReady = true;
+      window.TodayTimeOneSignalError = null;
+      window.dispatchEvent(new Event('tt-onesignal-state-change'));
+    }).catch(function(err){
+      console.error('OneSignal init failed', err);
+      window.TodayTimeOneSignalError = String(err && (err.message || err) || 'init_failed');
+      window.dispatchEvent(new Event('tt-onesignal-state-change'));
     });
-    window.TodayTimeOneSignal = OneSignal;
   });
 </script>
 
@@ -3252,23 +3265,65 @@ function ttIsStandalone(){return !!(window.matchMedia?.('(display-mode: standalo
 function ttOneSignal(){return window.TodayTimeOneSignal||null}
 function ttPushSnapshot(){
   const os=ttOneSignal();
-  if(!os)return {ready:false,supported:false,permission:false,optedIn:false,id:null,standalone:ttIsStandalone()};
-  let supported=false,permission=false,optedIn=false,id=null;
+  const nativeSupported=('Notification' in window);
+  const nativePermission=nativeSupported&&Notification.permission==='granted';
+  if(!os)return {ready:false,supported:nativeSupported,permission:nativePermission,optedIn:false,id:null,standalone:ttIsStandalone()};
+  let supported=nativeSupported,permission=nativePermission,optedIn=false,id=null;
   try{supported=!!os.Notifications.isPushSupported()}catch{}
-  try{permission=!!os.Notifications.permission}catch{}
+  try{permission=!!os.Notifications.permission||nativePermission}catch{}
   try{optedIn=!!os.User.PushSubscription.optedIn}catch{}
   try{id=os.User.PushSubscription.id||null}catch{}
   return {ready:true,supported,permission,optedIn,id,standalone:ttIsStandalone()};
 }
 async function ttSubscribePush(){
-  const os=ttOneSignal();if(!os)return toast('OneSignalを準備中です。数秒後にもう一度お試しください');
   if(!ttIsStandalone())return toast('iPhoneではホーム画面のTodayTimeから開いて登録してください',4200);
+
   try{
+    if(!('Notification' in window))return toast('この環境では通知を利用できません',3500);
+
+    /* OneSignalの準備状態に関係なく、まずiOS標準の通知許可を出す */
+    let permission=Notification.permission;
+    if(permission==='default'){
+      permission=await Notification.requestPermission();
+    }
+
+    if(permission!=='granted'){
+      if(permission==='denied'){
+        return toast('通知が拒否されています。iPhoneの設定→通知→TodayTimeで許可してください',5200);
+      }
+      return toast('iOSの通知を許可してからWeb Pushを登録してください',4200);
+    }
+
+    /* SDK/初期化を最大10秒待つ。ずっと「準備中」にはしない */
+    const started=Date.now();
+    while(Date.now()-started<10000){
+      if(window.TodayTimeOneSignalError){
+        return toast('OneSignal初期化エラー：'+window.TodayTimeOneSignalError,6500);
+      }
+      if(window.TodayTimeOneSignal&&window.TodayTimeOneSignalReady)break;
+      await new Promise(r=>setTimeout(r,200));
+    }
+
+    const os=ttOneSignal();
+    if(!os||!window.TodayTimeOneSignalReady){
+      return toast('iOS通知は許可済みですが、OneSignalを読み込めませんでした',5200);
+    }
+
     if(!os.Notifications.isPushSupported())return toast('この環境ではWeb Pushを利用できません',3500);
+
     await os.User.PushSubscription.optIn();
-    state.preferences.notifications.enabled=true;safeSave('web-push-subscribe',{backup:false});
-    setTimeout(()=>{closeFullPage();openNotificationSettings();toast('Web Pushの登録状態を更新しました')},450);
-  }catch(err){console.error('OneSignal optIn',err);toast('Web Pushを登録できませんでした',4000)}
+
+    state.preferences.notifications.enabled=true;
+    safeSave('web-push-subscribe',{backup:false});
+    setTimeout(()=>{
+      closeFullPage();
+      openNotificationSettings();
+      toast('Web Pushを登録しました');
+    },450);
+  }catch(err){
+    console.error('OneSignal optIn',err);
+    toast('Web Pushを登録できませんでした：'+String(err?.message||err||''),5500);
+  }
 }
 async function ttUnsubscribePush(){
   const os=ttOneSignal();if(!os)return toast('OneSignalを準備中です');
@@ -3363,9 +3418,11 @@ function ttAutoPushDesired(now=Date.now()){
     for(const o of (model.primary||[]).filter(o=>o.source!=='travel')){
       const start=nextStartTs(o),pre=start-lead*MIN;
       const add=(kind,sendAt,title,body,subId='')=>{if(sendAt<=now+15000||sendAt>latest)return;const x={occurrenceKey:o.occurrenceKey,kind,subId,sendAt,title:String(title||'予定'),body:String(body||''),date:o.date};x.fingerprint=ttPushFingerprint(x);out.push(x)};
-      add('pre',pre,o.title,`開始まであと${lead}分`);
-      add('start',start,o.title,'開始時刻です');
-      try{resolveSubtasks({...o,execution:executionFor(o.occurrenceKey,false)}).forEach(it=>add('sub',localDateTime(o.date,it.startMinute).getTime(),o.title,`次：${it.title}`,it.id))}catch{}
+      add('pre',pre,o.title,`予定開始まであと${lead}分`);
+      add('start',start,o.title,'ただいま開始時刻');
+      const eventExecution=executionFor(o.occurrenceKey,false);
+      if(!eventExecution?.event?.actualStartAt)add('actual-missing',start+5*MIN,o.title,'実績が未開始です\n実績修正を行ってください');
+      try{resolveSubtasks({...o,execution:eventExecution}).forEach(it=>add('sub',localDateTime(o.date,it.startMinute).getTime(),`${o.title}(SB)`,`次:${it.title}`,it.id))}catch{}
     }
   }
   const unique=new Map();out.forEach(x=>unique.set(x.fingerprint,x));return [...unique.values()].sort((a,b)=>a.sendAt-b.sendAt)
@@ -3446,7 +3503,7 @@ openNotificationSettings=function(){
 const ttLocalNotificationTick=NotificationScheduler.tick.bind(NotificationScheduler);
 NotificationScheduler.tick=function(){if(ttAutoPushReady())return;return ttLocalNotificationTick()};
 
-Bus.on('mutation',({mutation}={})=>{if(!mutation)return;const types=new Set(['createTemplate','updateOccurrence','moveOccurrence','resizeOccurrence','deleteOccurrence','applyNextDayTemplates']);if(types.has(mutation.type))ttQueueAutoPushSync(900)});
+Bus.on('mutation',({mutation}={})=>{if(!mutation)return;const types=new Set(['createTemplate','updateOccurrence','moveOccurrence','resizeOccurrence','deleteOccurrence','applyNextDayTemplates','startOccurrence','finishOccurrence','editExecution']);if(types.has(mutation.type))ttQueueAutoPushSync(900)});
 Bus.on('saved',({reason}={})=>{if(['soon-minutes','web-push-subscribe','restore','restore-merge'].includes(reason))ttQueueAutoPushSync(800)});
 setTimeout(()=>ttQueueAutoPushSync(400),3500);
 

@@ -11,8 +11,7 @@
 <title>TodayTime 2.0 Final</title>
 <!-- TodayTime Web Push / PWA -->
 <link rel="manifest" href="/TodayTime/manifest.json">
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="apple-touch-icon" href="/TodayTime/icon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/TodayTime/apple-touch-icon.png">
 <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
 <script>
   window.OneSignalDeferred = window.OneSignalDeferred || [];
@@ -3364,9 +3363,11 @@ function ttAutoPushDesired(now=Date.now()){
     for(const o of (model.primary||[]).filter(o=>o.source!=='travel')){
       const start=nextStartTs(o),pre=start-lead*MIN;
       const add=(kind,sendAt,title,body,subId='')=>{if(sendAt<=now+15000||sendAt>latest)return;const x={occurrenceKey:o.occurrenceKey,kind,subId,sendAt,title:String(title||'予定'),body:String(body||''),date:o.date};x.fingerprint=ttPushFingerprint(x);out.push(x)};
-      add('pre',pre,o.title,`開始まであと${lead}分`);
-      add('start',start,o.title,'開始時刻です');
-      try{resolveSubtasks({...o,execution:executionFor(o.occurrenceKey,false)}).forEach(it=>add('sub',localDateTime(o.date,it.startMinute).getTime(),o.title,`次：${it.title}`,it.id))}catch{}
+      add('pre',pre,o.title,`予定開始まであと${lead}分`);
+      add('start',start,o.title,'ただいま開始時刻');
+      const eventExecution=executionFor(o.occurrenceKey,false);
+      if(!eventExecution?.event?.actualStartAt)add('actual-missing',start+5*MIN,o.title,'実績が未開始です\n実績修正を行ってください');
+      try{resolveSubtasks({...o,execution:eventExecution}).forEach(it=>add('sub',localDateTime(o.date,it.startMinute).getTime(),`${o.title}(SB)`,`次:${it.title}`,it.id))}catch{}
     }
   }
   const unique=new Map();out.forEach(x=>unique.set(x.fingerprint,x));return [...unique.values()].sort((a,b)=>a.sendAt-b.sendAt)
@@ -3447,7 +3448,7 @@ openNotificationSettings=function(){
 const ttLocalNotificationTick=NotificationScheduler.tick.bind(NotificationScheduler);
 NotificationScheduler.tick=function(){if(ttAutoPushReady())return;return ttLocalNotificationTick()};
 
-Bus.on('mutation',({mutation}={})=>{if(!mutation)return;const types=new Set(['createTemplate','updateOccurrence','moveOccurrence','resizeOccurrence','deleteOccurrence','applyNextDayTemplates']);if(types.has(mutation.type))ttQueueAutoPushSync(900)});
+Bus.on('mutation',({mutation}={})=>{if(!mutation)return;const types=new Set(['createTemplate','updateOccurrence','moveOccurrence','resizeOccurrence','deleteOccurrence','applyNextDayTemplates','startOccurrence','finishOccurrence','editExecution']);if(types.has(mutation.type))ttQueueAutoPushSync(900)});
 Bus.on('saved',({reason}={})=>{if(['soon-minutes','web-push-subscribe','restore','restore-merge'].includes(reason))ttQueueAutoPushSync(800)});
 setTimeout(()=>ttQueueAutoPushSync(400),3500);
 

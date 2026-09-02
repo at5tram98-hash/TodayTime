@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json.schemastore.org/web-manifest-combined.json",
+  "name": "TodayTime",
+  "short_name": "TodayTime",
+  "id": "/TodayTime/",
+  "start_url": "/TodayTime/",
+  "scope": "/TodayTime/",
+  "display": "standalone",
+  "background_color": "#f2f2f7",
+  "theme_color": "#f2f2f7",
+  "icons": [
+    {"src": "/TodayTime/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable"},
+    {"src": "/TodayTime/icon-256.png", "sizes": "256x256", "type": "image/png", "purpose": "any maskable"},
+    {"src": "/TodayTime/icon-384.png", "sizes": "384x384", "type": "image/png", "purpose": "any maskable"},
+    {"src": "/TodayTime/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}
+  ]
+}

@@ -3272,22 +3272,54 @@ window.addEventListener('tt-onesignal-state-change',()=>{
 });
 function ttPushSnapshot(){
   const os=ttOneSignal();
-  if(!os)return {ready:false,supported:false,permission:false,optedIn:false,id:null,standalone:ttIsStandalone()};
-  let supported=false,permission=false,optedIn=false,id=null;
+  const nativeSupported='Notification' in window;
+  const nativePermission=nativeSupported&&Notification.permission==='granted';
+  if(!os)return {ready:false,supported:nativeSupported,permission:nativePermission,optedIn:false,id:null,standalone:ttIsStandalone()};
+  let supported=false,permission=nativePermission,optedIn=false,id=null;
   try{supported=!!os.Notifications.isPushSupported()}catch{}
-  try{permission=!!os.Notifications.permission}catch{}
+  try{permission=!!os.Notifications.permission||nativePermission}catch{}
   try{optedIn=!!os.User.PushSubscription.optedIn}catch{}
   try{id=os.User.PushSubscription.id||null}catch{}
   return {ready:true,supported,permission,optedIn,id,standalone:ttIsStandalone()};
 }
+async function ttRequestIOSPermission(){
+  if(!ttIsStandalone())return toast('iPhoneではホーム画面のTodayTimeから開いてください',4200);
+  if(!('Notification' in window))return toast('この環境では通知を利用できません',3500);
+  try{
+    let granted=Notification.permission==='granted';
+    if(!granted){
+      const os=ttOneSignal();
+      if(os&&os.Notifications&&typeof os.Notifications.requestPermission==='function'){
+        await os.Notifications.requestPermission();
+      }else{
+        await Notification.requestPermission();
+      }
+      granted=Notification.permission==='granted';
+      try{if(!granted&&os)granted=!!os.Notifications.permission}catch{}
+    }
+    if(!granted){
+      return toast('iOSの通知が許可されませんでした。iPhoneの設定も確認してください',4500);
+    }
+    state.preferences.notifications.enabled=true;
+    safeSave('ios-notification-permission',{backup:false});
+    toast('iOSの通知を許可しました',2600);
+    setTimeout(()=>{closeFullPage();openNotificationSettings()},350);
+  }catch(err){
+    console.error('iOS notification permission',err);
+    toast('通知許可を表示できませんでした',4000);
+  }
+}
+
 async function ttSubscribePush(){
-  const os=ttOneSignal();if(!os)return toast('OneSignalを準備中です。数秒後にもう一度お試しください');
   if(!ttIsStandalone())return toast('iPhoneではホーム画面のTodayTimeから開いて登録してください',4200);
+  const snap=ttPushSnapshot();
+  if(!snap.permission)return toast('先に「iOSの通知を許可する」を押してください',3800);
+  const os=ttOneSignal();if(!os)return toast('OneSignalを準備中です。数秒後にもう一度お試しください');
   try{
     if(!os.Notifications.isPushSupported())return toast('この環境ではWeb Pushを利用できません',3500);
     await os.User.PushSubscription.optIn();
     state.preferences.notifications.enabled=true;safeSave('web-push-subscribe',{backup:false});
-    setTimeout(()=>{closeFullPage();openNotificationSettings();toast('Web Pushの登録状態を更新しました')},450);
+    setTimeout(()=>{closeFullPage();openNotificationSettings();toast('Web Pushを登録しました')},450);
   }catch(err){console.error('OneSignal optIn',err);toast('Web Pushを登録できませんでした',4000)}
 }
 async function ttUnsubscribePush(){
@@ -3452,11 +3484,13 @@ openNotificationSettings=function(){
       <div class="full-row"><div><div class="full-row-title">最終同期</div></div><div class="full-row-value">${ttAutoPushDateLabel(s.lastSyncAt)}</div></div>
     </div>
     ${s.lastError?`<div class="validation-box warn">前回の同期：${esc(s.lastError)}</div>`:''}
-    <button class="primary-wide" id="ttWebPushToggle">${x.optedIn?'Web Pushをオフにする':'Web Pushを登録する'}</button>
+    ${!x.permission?'<button class="primary-wide" id="ttIOSPermission">iOSの通知を許可する</button>':''}
+    <button class="primary-wide" id="ttWebPushToggle" ${!x.permission&&!x.optedIn?'style="background:var(--surface);color:var(--blue)"':''}>${x.optedIn?'Web Pushをオフにする':'Web Pushを登録する'}</button>
     <button class="primary-wide" id="ttServerSettings" style="background:var(--surface);color:var(--blue)">自動通知サーバー設定</button>
     <button class="primary-wide" id="ttSyncPush" style="background:var(--surface);color:var(--blue)">今すぐ予定通知を同期</button>
     <button class="primary-wide" id="ttRefreshPush" style="background:var(--surface);color:var(--blue)">状態を再確認</button>
   `,bind:r=>{
+    const permBtn=$('#ttIOSPermission',r);if(permBtn)permBtn.onclick=ttRequestIOSPermission;
     $('#ttWebPushToggle',r).onclick=()=>x.optedIn?ttUnsubscribePush():ttSubscribePush();
     $('#ttServerSettings',r).onclick=openAutoPushServerSettings;
     $('#ttSyncPush',r).onclick=()=>ttSyncAutoPush({manual:true}).then(()=>{setTimeout(()=>{closeFullPage();openNotificationSettings()},500)});

@@ -3333,6 +3333,124 @@ function renderSettings(){
 }
 
 
+/* ===== TodayTime automatic Web Push scheduler (Cloudflare Worker + OneSignal) ===== */
+const TT_AUTOPUSH_CONFIG_KEY='todaytime:webpush:server:v1';
+const TT_AUTOPUSH_MAP_KEY='todaytime:webpush:scheduled:v1';
+const TT_AUTOPUSH_STATUS_KEY='todaytime:webpush:sync-status:v1';
+const TT_AUTOPUSH_MAX_MS=30*DAY;
+let ttAutoPushTimer=null,ttAutoPushRunning=false;
+
+function ttReadJSON(key,fallback){try{return JSON.parse(localStorage.getItem(key)||'null')??fallback}catch{return fallback}}
+function ttWriteJSON(key,value){localStorage.setItem(key,JSON.stringify(value))}
+function ttAutoPushConfig(){const x=ttReadJSON(TT_AUTOPUSH_CONFIG_KEY,{});return {url:String(x.url||'').trim().replace(/\/+$/,''),key:String(x.key||'')}}
+function ttAutoPushMap(){const x=ttReadJSON(TT_AUTOPUSH_MAP_KEY,{});return x&&typeof x==='object'?x:{}}
+function ttAutoPushStatus(){return ttReadJSON(TT_AUTOPUSH_STATUS_KEY,{lastSyncAt:null,lastError:null,scheduled:0})}
+function ttAutoPushReady(){const c=ttAutoPushConfig(),p=ttPushSnapshot();return !!(c.url&&c.key&&p.ready&&p.optedIn&&p.permission)}
+function ttAutoPushDateLabel(ts){return ts?new Date(ts).toLocaleString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}):'未同期'}
+
+async function ttWorkerCall(path,payload){
+  const c=ttAutoPushConfig();if(!c.url||!c.key)throw new Error('通知サーバーが未設定です');
+  const res=await fetch(c.url+path,{method:'POST',headers:{'Content-Type':'application/json','X-TodayTime-Key':c.key},body:JSON.stringify(payload||{})});
+  let data={};try{data=await res.json()}catch{}
+  if(!res.ok||!data.ok)throw new Error(data.error||`HTTP ${res.status}`);
+  return data;
+}
+function ttPushFingerprint(x){return [x.occurrenceKey,x.kind,x.subId||'',x.sendAt,x.title,x.body].join('|')}
+function ttAutoPushDesired(now=Date.now()){
+  const lead=liveSoonMinutes(),startDate=dateKey(new Date(now)),endDate=dateKey(new Date(now+TT_AUTOPUSH_MAX_MS-60000)),latest=now+TT_AUTOPUSH_MAX_MS-60000,out=[];
+  for(let k=startDate;k<=endDate;k=addDaysKey(k,1)){
+    let model;try{model=DayModel.build(k)}catch{continue}
+    for(const o of (model.primary||[]).filter(o=>o.source!=='travel')){
+      const start=nextStartTs(o),pre=start-lead*MIN;
+      const add=(kind,sendAt,title,body,subId='')=>{if(sendAt<=now+15000||sendAt>latest)return;const x={occurrenceKey:o.occurrenceKey,kind,subId,sendAt,title:String(title||'予定'),body:String(body||''),date:o.date};x.fingerprint=ttPushFingerprint(x);out.push(x)};
+      add('pre',pre,o.title,`開始まであと${lead}分`);
+      add('start',start,o.title,'開始時刻です');
+      try{resolveSubtasks({...o,execution:executionFor(o.occurrenceKey,false)}).forEach(it=>add('sub',localDateTime(o.date,it.startMinute).getTime(),o.title,`次：${it.title}`,it.id))}catch{}
+    }
+  }
+  const unique=new Map();out.forEach(x=>unique.set(x.fingerprint,x));return [...unique.values()].sort((a,b)=>a.sendAt-b.sendAt)
+}
+async function ttAutoPushCancelEntry(entry){if(!entry?.messageId)return true;await ttWorkerCall('/cancel',{messageId:entry.messageId});return true}
+async function ttAutoPushScheduleItem(item){
+  const idempotencyKey=crypto.randomUUID();
+  const data=await ttWorkerCall('/schedule',{title:item.title,body:item.body,sendAfter:new Date(item.sendAt).toISOString(),kind:item.kind,idempotencyKey});
+  return {...item,messageId:data.messageId,idempotencyKey,createdAt:Date.now()}
+}
+async function ttSyncAutoPush({manual=false}={}){
+  if(ttAutoPushRunning){if(manual)toast('通知を同期中です');return false}
+  if(!ttAutoPushReady()){if(manual)toast('先にWeb Pushと通知サーバーを設定してください',3800);return false}
+  ttAutoPushRunning=true;
+  const desired=ttAutoPushDesired(),wanted=new Map(desired.map(x=>[x.fingerprint,x])),stored=ttAutoPushMap(),next={...stored};let canceled=0,created=0,error=null;
+  try{
+    for(const [fp,entry] of Object.entries(stored)){
+      if((entry.sendAt||0)<=Date.now()+5000){delete next[fp];continue}
+      if(wanted.has(fp))continue;
+      try{await ttAutoPushCancelEntry(entry);delete next[fp];canceled++}catch(err){console.warn('push cancel',err);error=err}
+    }
+    ttWriteJSON(TT_AUTOPUSH_MAP_KEY,next);
+    for(const item of desired){
+      if(next[item.fingerprint]?.messageId)continue;
+      try{const made=await ttAutoPushScheduleItem(item);next[item.fingerprint]=made;ttWriteJSON(TT_AUTOPUSH_MAP_KEY,next);created++}catch(err){console.warn('push schedule',err);error=err;break}
+    }
+    const active=Object.values(next).filter(x=>(x.sendAt||0)>Date.now()).length,status={lastSyncAt:Date.now(),lastError:error?String(error.message||error):null,scheduled:active,created,canceled};ttWriteJSON(TT_AUTOPUSH_STATUS_KEY,status);
+    if(manual)toast(error?`一部同期できませんでした（予約 ${active}件）`:`通知を同期しました（予約 ${active}件）`,4200);
+    return !error
+  }finally{ttAutoPushRunning=false}
+}
+function ttQueueAutoPushSync(delay=1000){clearTimeout(ttAutoPushTimer);ttAutoPushTimer=setTimeout(()=>ttSyncAutoPush().catch(console.warn),delay)}
+
+function openAutoPushServerSettings(){
+  const c=ttAutoPushConfig(),s=ttAutoPushStatus();openFullPage({title:'自動通知サーバー',html:`
+    <div class="hero"><div class="hero-kicker">Cloudflare Worker</div><div class="hero-value">${c.url&&c.key?'設定済み':'未設定'}</div><div class="hero-sub">OneSignalの秘密のAPIキーをTodayTime本体に置かず、安全なサーバー経由で通知を予約します</div></div>
+    <div class="form-group">
+      <div class="field title-field"><label>Worker URL</label><input id="ttWorkerUrl" value="${esc(c.url)}" placeholder="https://todaytime-push.xxxxx.workers.dev" autocomplete="off"></div>
+      <div class="field title-field"><label>Sync Key</label><input id="ttWorkerKey" type="password" value="${esc(c.key)}" placeholder="Cloudflareに設定した共通キー" autocomplete="off"></div>
+    </div>
+    <div class="user-note" style="padding:12px 4px">OneSignalのApp API Keyはここには入力しません。Cloudflare WorkerのSecretだけに保存します。</div>
+    <button class="primary-wide" id="ttSaveServer">保存</button>
+    <button class="primary-wide" id="ttTestServer" style="background:var(--surface);color:var(--blue)">接続テスト通知を送る</button>
+    <div class="score-insight ${s.lastError?'next':'good'}"><strong>最終同期：${ttAutoPushDateLabel(s.lastSyncAt)}</strong><span>${s.lastError?esc(s.lastError):`現在 ${s.scheduled||0}件を予約中`}</span></div>
+  `,bind:r=>{
+    $('#ttSaveServer',r).onclick=()=>{const url=$('#ttWorkerUrl',r).value.trim().replace(/\/+$/,''),key=$('#ttWorkerKey',r).value;if(!/^https:\/\//.test(url)||!key)return toast('Worker URLとSync Keyを入力してください');ttWriteJSON(TT_AUTOPUSH_CONFIG_KEY,{url,key});toast('通知サーバー設定を保存しました');ttQueueAutoPushSync(300)};
+    $('#ttTestServer',r).onclick=async()=>{const url=$('#ttWorkerUrl',r).value.trim().replace(/\/+$/,''),key=$('#ttWorkerKey',r).value;if(!/^https:\/\//.test(url)||!key)return toast('先にURLとSync Keyを入力してください');ttWriteJSON(TT_AUTOPUSH_CONFIG_KEY,{url,key});try{await ttWorkerCall('/test',{});toast('接続テスト通知を送信しました')}catch(err){toast(`接続失敗：${err.message}`,5000)}};
+  }})
+}
+
+const ttOpenNotificationSettingsBase=openNotificationSettings;
+openNotificationSettings=function(){
+  const x=ttPushSnapshot(),c=ttAutoPushConfig(),s=ttAutoPushStatus(),status=!x.ready?'準備中':x.optedIn&&x.permission?'登録済み':x.permission?'許可済み':'未登録';
+  openFullPage({title:'通知',html:`
+    <div class="hero"><div class="hero-kicker">OneSignal Web Push</div><div class="hero-value">${status}</div><div class="hero-sub">TodayTimeを閉じていても予定時刻に通知します</div></div>
+    <div class="full-group">
+      <div class="full-row"><div><div class="full-row-title">ホーム画面アプリ</div></div><div class="full-row-value">${x.standalone?'はい':'いいえ'}</div></div>
+      <div class="full-row"><div><div class="full-row-title">iOS通知許可</div></div><div class="full-row-value">${x.permission?'許可済み':'未許可'}</div></div>
+      <div class="full-row"><div><div class="full-row-title">OneSignal購読</div></div><div class="full-row-value">${x.optedIn?'登録済み':'未登録'}</div></div>
+      <div class="full-row"><div><div class="full-row-title">自動通知サーバー</div></div><div class="full-row-value">${c.url&&c.key?'設定済み':'未設定'}</div></div>
+      <div class="full-row"><div><div class="full-row-title">予約済み通知</div><span class="full-row-sub">最大30日先まで自動予約</span></div><div class="full-row-value">${s.scheduled||0}件</div></div>
+      <div class="full-row"><div><div class="full-row-title">最終同期</div></div><div class="full-row-value">${ttAutoPushDateLabel(s.lastSyncAt)}</div></div>
+    </div>
+    ${s.lastError?`<div class="validation-box warn">前回の同期：${esc(s.lastError)}</div>`:''}
+    <button class="primary-wide" id="ttWebPushToggle">${x.optedIn?'Web Pushをオフにする':'Web Pushを登録する'}</button>
+    <button class="primary-wide" id="ttServerSettings" style="background:var(--surface);color:var(--blue)">自動通知サーバー設定</button>
+    <button class="primary-wide" id="ttSyncPush" style="background:var(--surface);color:var(--blue)">今すぐ予定通知を同期</button>
+    <button class="primary-wide" id="ttRefreshPush" style="background:var(--surface);color:var(--blue)">状態を再確認</button>
+  `,bind:r=>{
+    $('#ttWebPushToggle',r).onclick=()=>x.optedIn?ttUnsubscribePush():ttSubscribePush();
+    $('#ttServerSettings',r).onclick=openAutoPushServerSettings;
+    $('#ttSyncPush',r).onclick=()=>ttSyncAutoPush({manual:true}).then(()=>{setTimeout(()=>{closeFullPage();openNotificationSettings()},500)});
+    $('#ttRefreshPush',r).onclick=()=>{closeFullPage();setTimeout(openNotificationSettings,60)};
+  }})
+};
+
+/* Avoid duplicate foreground local notifications once server-side Web Push is active. */
+const ttLocalNotificationTick=NotificationScheduler.tick.bind(NotificationScheduler);
+NotificationScheduler.tick=function(){if(ttAutoPushReady())return;return ttLocalNotificationTick()};
+
+Bus.on('mutation',({mutation}={})=>{if(!mutation)return;const types=new Set(['createTemplate','updateOccurrence','moveOccurrence','resizeOccurrence','deleteOccurrence','applyNextDayTemplates']);if(types.has(mutation.type))ttQueueAutoPushSync(900)});
+Bus.on('saved',({reason}={})=>{if(['soon-minutes','web-push-subscribe','restore','restore-merge'].includes(reason))ttQueueAutoPushSync(800)});
+setTimeout(()=>ttQueueAutoPushSync(400),3500);
+
+
 setTab(runtime.tab,{history:false});
 SplashController.ready();
 })();

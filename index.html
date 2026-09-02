@@ -9,35 +9,9 @@
 <meta name="apple-mobile-web-app-title" content="TodayTime">
 <meta name="format-detection" content="telephone=no">
 <title>TodayTime 2.0 Final</title>
-<!-- TodayTime Web Push / PWA -->
+<!-- TodayTime PWA -->
 <link rel="manifest" href="/TodayTime/manifest.json">
 <link rel="apple-touch-icon" sizes="180x180" href="/TodayTime/apple-touch-icon.png">
-<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
-<script>
-  window.TodayTimeOneSignal = null;
-  window.TodayTimeOneSignalReady = false;
-  window.TodayTimeOneSignalError = null;
-  window.OneSignalDeferred = window.OneSignalDeferred || [];
-  OneSignalDeferred.push(function(OneSignal) {
-    // Expose the SDK immediately so the UI does not remain stuck on 「準備中」
-    // while OneSignal finishes initialization in the background.
-    window.TodayTimeOneSignal = OneSignal;
-    Promise.resolve(OneSignal.init({
-      appId: "048a698f-32ac-4a9a-bbaa-398b61959754",
-      serviceWorkerPath: "TodayTime/OneSignalSDKWorker.js",
-      serviceWorkerParam: { scope: "/TodayTime/" },
-      notifyButton: { enable: false }
-    })).then(function(){
-      window.TodayTimeOneSignalReady = true;
-      window.TodayTimeOneSignalError = null;
-      window.dispatchEvent(new Event('tt-onesignal-state-change'));
-    }).catch(function(err){
-      console.error('OneSignal init failed', err);
-      window.TodayTimeOneSignalError = String(err && (err.message || err) || 'init_failed');
-      window.dispatchEvent(new Event('tt-onesignal-state-change'));
-    });
-  });
-</script>
 
 <script>
 /* TodayTime brand intro preflight: decide theme + splash before body paints. */
@@ -3260,63 +3234,6 @@ function openTRPCalendarReview(k=dateKey(new Date()),{replace=false}={}){const m
 function openPlanningActionMenu(anchor){openActionSheet([{label:'TRP（今日の残りをカレンダーで編集）',run:()=>PlanCalendarEditor.open('trp')},{label:'翌日計画（明日をカレンダーで編集）',run:()=>PlanCalendarEditor.open('nextday')}],'計画を選択')}
 
 
-/* ===== TodayTime Web Push settings (OneSignal) ===== */
-function ttIsStandalone(){return !!(window.matchMedia?.('(display-mode: standalone)')?.matches||navigator.standalone===true)}
-function ttOneSignal(){return window.TodayTimeOneSignal||null}
-window.addEventListener('tt-onesignal-state-change',()=>{
-  try{
-    const fp=document.getElementById('fullPage');
-    const title=fp?.querySelector?.('.full-heading h1')?.textContent||'';
-    if(title==='通知'){closeFullPage();setTimeout(openNotificationSettings,80)}
-  }catch{}
-});
-function ttPushSnapshot(){
-  const os=ttOneSignal();
-  if(!os)return {ready:false,supported:false,permission:false,optedIn:false,id:null,standalone:ttIsStandalone()};
-  let supported=false,permission=false,optedIn=false,id=null;
-  try{supported=!!os.Notifications.isPushSupported()}catch{}
-  try{permission=!!os.Notifications.permission}catch{}
-  try{optedIn=!!os.User.PushSubscription.optedIn}catch{}
-  try{id=os.User.PushSubscription.id||null}catch{}
-  return {ready:true,supported,permission,optedIn,id,standalone:ttIsStandalone()};
-}
-async function ttSubscribePush(){
-  const os=ttOneSignal();if(!os)return toast('OneSignalを準備中です。数秒後にもう一度お試しください');
-  if(!ttIsStandalone())return toast('iPhoneではホーム画面のTodayTimeから開いて登録してください',4200);
-  try{
-    if(!os.Notifications.isPushSupported())return toast('この環境ではWeb Pushを利用できません',3500);
-    await os.User.PushSubscription.optIn();
-    state.preferences.notifications.enabled=true;safeSave('web-push-subscribe',{backup:false});
-    setTimeout(()=>{closeFullPage();openNotificationSettings();toast('Web Pushの登録状態を更新しました')},450);
-  }catch(err){console.error('OneSignal optIn',err);toast('Web Pushを登録できませんでした',4000)}
-}
-async function ttUnsubscribePush(){
-  const os=ttOneSignal();if(!os)return toast('OneSignalを準備中です');
-  try{await os.User.PushSubscription.optOut();setTimeout(()=>{closeFullPage();openNotificationSettings();toast('Web Pushをオフにしました')},300)}catch(err){console.error('OneSignal optOut',err);toast('Web Pushをオフにできませんでした')}
-}
-openNotificationSettings=function(){
-  const x=ttPushSnapshot(),status=!x.ready?'準備中':x.optedIn&&x.permission?'登録済み':x.permission?'許可済み':'未登録';
-  const statusClass=x.optedIn&&x.permission?'good':'next';
-  openFullPage({title:'通知',html:`
-    <div class="hero"><div class="hero-kicker">OneSignal Web Push</div><div class="hero-value">${status}</div><div class="hero-sub">TodayTimeを閉じていても通知を受け取るための登録です</div></div>
-    <div class="full-group">
-      <div class="full-row"><div><div class="full-row-title">ホーム画面アプリ</div><span class="full-row-sub">iPhoneのWeb Pushでは必要です</span></div><div class="full-row-value">${x.standalone?'はい':'いいえ'}</div></div>
-      <div class="full-row"><div><div class="full-row-title">Web Push対応</div></div><div class="full-row-value">${!x.ready?'確認中':x.supported?'対応':'非対応'}</div></div>
-      <div class="full-row"><div><div class="full-row-title">iOS通知許可</div></div><div class="full-row-value">${x.permission?'許可済み':'未許可'}</div></div>
-      <div class="full-row"><div><div class="full-row-title">OneSignal購読</div></div><div class="full-row-value">${x.optedIn?'登録済み':'未登録'}</div></div>
-      ${x.id?`<div class="full-row"><div><div class="full-row-title">Subscription ID</div><span class="full-row-sub">OneSignalでこのiPhoneを識別するID</span></div><div class="full-row-value" style="max-width:145px;overflow:hidden;text-overflow:ellipsis">${esc(x.id.slice(0,8)+'…'+x.id.slice(-6))}</div></div>`:''}
-    </div>
-    ${!x.standalone?'<div class="validation-box warn">iPhoneではSafariのページではなく、ホーム画面に追加したTodayTimeから開いて「Web Pushを登録」を押してください。</div>':''}
-    <div class="score-insight ${statusClass}"><strong>${x.optedIn&&x.permission?'このiPhoneはOneSignalに登録されています':'まだOneSignalへの登録が完了していません'}</strong><span>${x.optedIn&&x.permission?'次はOneSignalからテストPushを送って、アプリを閉じた状態で届くか確認します。':'下のボタンは必ずホーム画面版TodayTimeから押してください。'}</span></div>
-    <button class="primary-wide" id="ttWebPushToggle">${x.optedIn?'Web Pushをオフにする':'Web Pushを登録する'}</button>
-    <button class="primary-wide" id="ttRefreshPush" style="background:var(--surface);color:var(--blue)">状態を再確認</button>
-  `,bind:r=>{
-    $('#ttWebPushToggle',r).onclick=()=>x.optedIn?ttUnsubscribePush():ttSubscribePush();
-    $('#ttRefreshPush',r).onclick=()=>{closeFullPage();setTimeout(openNotificationSettings,50)};
-  }});
-}
-
-
 Bus.on('mutation',({mutation}={})=>{
   if(!mutation)return;const scheduleTypes=new Set(['createTemplate','updateOccurrence','moveOccurrence','resizeOccurrence','deleteOccurrence','applyNextDayTemplates']);if(!scheduleTypes.has(mutation.type))return;
   const frame=[...runtime.fullStack].reverse().find(x=>x?.planCalendarEditor);if(!frame)return;
@@ -3331,7 +3248,7 @@ function renderSettings(){
   if(!$('#migrationTopCard',page))page.insertAdjacentHTML('afterbegin',`<div class="data-transfer-card" id="migrationTopCard" style="margin-top:0;margin-bottom:14px"><strong>旧URLのデータを引き継ぐ</strong><p>バックアップファイルを使えば、別URLでもそのまま移行できます。</p><button id="settingsMigrationTop">移行ガイド</button></div>`);
   $('#settingsMigrationTop',root)?.addEventListener('click',openMigrationGuide);
 
-  const notifRow=$('#notificationRow',root),pushState=ttPushSnapshot();if(notifRow){$('.settings-name',notifRow).textContent='Web Push';$('.settings-sub',notifRow).textContent='アプリを閉じていても予定通知を受け取る';$('.settings-value',notifRow).textContent=pushState.optedIn&&pushState.permission?'登録済み':pushState.ready?'未登録':'準備中';notifRow.onclick=openNotificationSettings}
+  const notifRow=$('#notificationRow',root),serverCfg=ttAutoPushConfig();if(notifRow){$('.settings-name',notifRow).textContent='自動通知サーバー';$('.settings-sub',notifRow).textContent='予定通知をCloudflare Worker経由で自動予約';$('.settings-value',notifRow).textContent=serverCfg.url&&serverCfg.key?'設定済み':'未設定';notifRow.onclick=openNotificationSettings}
 
   const quick=$('#quickTemplateRow',root);if(quick){$('.settings-name',quick).textContent='クイック予定一覧';$('.settings-sub',quick).textContent='追加・編集・削除・並び替え';$('.settings-value',quick).textContent=`${QuickScheduleUX.items().length}件`;quick.onclick=()=>QuickScheduleUX.openManager()}
   const nd=$('#nextDayTemplatesRow',root),ndList=NextDayTemplateService.list();if(nd){$('.settings-name',nd).textContent='翌日テンプレート';$('.settings-sub',nd).textContent='最大4件・カレンダーで編集';$('.settings-value',nd).textContent=`${ndList.length}/4`;nd.onclick=()=>NextDayTemplateLibrary.open()}
@@ -3365,7 +3282,7 @@ function ttWriteJSON(key,value){localStorage.setItem(key,JSON.stringify(value))}
 function ttAutoPushConfig(){const x=ttReadJSON(TT_AUTOPUSH_CONFIG_KEY,{});return {url:String(x.url||'').trim().replace(/\/+$/,''),key:String(x.key||'')}}
 function ttAutoPushMap(){const x=ttReadJSON(TT_AUTOPUSH_MAP_KEY,{});return x&&typeof x==='object'?x:{}}
 function ttAutoPushStatus(){return ttReadJSON(TT_AUTOPUSH_STATUS_KEY,{lastSyncAt:null,lastError:null,scheduled:0})}
-function ttAutoPushReady(){const c=ttAutoPushConfig(),p=ttPushSnapshot();return !!(c.url&&c.key&&p.ready&&p.optedIn&&p.permission)}
+function ttAutoPushReady(){const c=ttAutoPushConfig();return !!(c.url&&c.key)}
 function ttAutoPushDateLabel(ts){return ts?new Date(ts).toLocaleString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}):'未同期'}
 
 async function ttWorkerCall(path,payload){
@@ -3400,7 +3317,7 @@ async function ttAutoPushScheduleItem(item){
 }
 async function ttSyncAutoPush({manual=false}={}){
   if(ttAutoPushRunning){if(manual)toast('通知を同期中です');return false}
-  if(!ttAutoPushReady()){if(manual)toast('先にWeb Pushと通知サーバーを設定してください',3800);return false}
+  if(!ttAutoPushReady()){if(manual)toast('先に自動通知サーバーを設定してください',3800);return false}
   ttAutoPushRunning=true;
   const desired=ttAutoPushDesired(),wanted=new Map(desired.map(x=>[x.fingerprint,x])),stored=ttAutoPushMap(),next={...stored};let canceled=0,created=0,error=null;
   try{
@@ -3438,29 +3355,22 @@ function openAutoPushServerSettings(){
   }})
 }
 
-const ttOpenNotificationSettingsBase=openNotificationSettings;
 openNotificationSettings=function(){
-  const x=ttPushSnapshot(),c=ttAutoPushConfig(),s=ttAutoPushStatus(),status=!x.ready?'準備中':x.optedIn&&x.permission?'登録済み':x.permission?'許可済み':'未登録';
+  const c=ttAutoPushConfig(),s=ttAutoPushStatus(),ready=!!(c.url&&c.key);
   openFullPage({title:'通知',html:`
-    <div class="hero"><div class="hero-kicker">OneSignal Web Push</div><div class="hero-value">${status}</div><div class="hero-sub">TodayTimeを閉じていても予定時刻に通知します</div></div>
+    <div class="hero"><div class="hero-kicker">自動通知サーバー</div><div class="hero-value">${ready?'設定済み':'未設定'}</div><div class="hero-sub">Cloudflare Worker経由で予定通知を自動予約します</div></div>
     <div class="full-group">
-      <div class="full-row"><div><div class="full-row-title">ホーム画面アプリ</div></div><div class="full-row-value">${x.standalone?'はい':'いいえ'}</div></div>
-      <div class="full-row"><div><div class="full-row-title">iOS通知許可</div></div><div class="full-row-value">${x.permission?'許可済み':'未許可'}</div></div>
-      <div class="full-row"><div><div class="full-row-title">OneSignal購読</div></div><div class="full-row-value">${x.optedIn?'登録済み':'未登録'}</div></div>
-      <div class="full-row"><div><div class="full-row-title">自動通知サーバー</div></div><div class="full-row-value">${c.url&&c.key?'設定済み':'未設定'}</div></div>
+      <div class="full-row"><div><div class="full-row-title">通知サーバー</div><span class="full-row-sub">Worker URL / Sync Key</span></div><div class="full-row-value">${ready?'設定済み':'未設定'}</div></div>
       <div class="full-row"><div><div class="full-row-title">予約済み通知</div><span class="full-row-sub">最大30日先まで自動予約</span></div><div class="full-row-value">${s.scheduled||0}件</div></div>
       <div class="full-row"><div><div class="full-row-title">最終同期</div></div><div class="full-row-value">${ttAutoPushDateLabel(s.lastSyncAt)}</div></div>
     </div>
     ${s.lastError?`<div class="validation-box warn">前回の同期：${esc(s.lastError)}</div>`:''}
-    <button class="primary-wide" id="ttWebPushToggle">${x.optedIn?'Web Pushをオフにする':'Web Pushを登録する'}</button>
-    <button class="primary-wide" id="ttServerSettings" style="background:var(--surface);color:var(--blue)">自動通知サーバー設定</button>
+    <div class="user-note" style="padding:12px 4px">Web Pushの購読登録はこの画面では行いません。現在のOneSignal購読はそのまま利用し、TodayTimeでは自動通知サーバーの設定と予定同期だけを管理します。</div>
+    <button class="primary-wide" id="ttServerSettings">自動通知サーバー設定</button>
     <button class="primary-wide" id="ttSyncPush" style="background:var(--surface);color:var(--blue)">今すぐ予定通知を同期</button>
-    <button class="primary-wide" id="ttRefreshPush" style="background:var(--surface);color:var(--blue)">状態を再確認</button>
   `,bind:r=>{
-    $('#ttWebPushToggle',r).onclick=()=>x.optedIn?ttUnsubscribePush():ttSubscribePush();
     $('#ttServerSettings',r).onclick=openAutoPushServerSettings;
     $('#ttSyncPush',r).onclick=()=>ttSyncAutoPush({manual:true}).then(()=>{setTimeout(()=>{closeFullPage();openNotificationSettings()},500)});
-    $('#ttRefreshPush',r).onclick=()=>{closeFullPage();setTimeout(openNotificationSettings,60)};
   }})
 };
 
@@ -3469,7 +3379,7 @@ const ttLocalNotificationTick=NotificationScheduler.tick.bind(NotificationSchedu
 NotificationScheduler.tick=function(){if(ttAutoPushReady())return;return ttLocalNotificationTick()};
 
 Bus.on('mutation',({mutation}={})=>{if(!mutation)return;const types=new Set(['createTemplate','updateOccurrence','moveOccurrence','resizeOccurrence','deleteOccurrence','applyNextDayTemplates','startOccurrence','finishOccurrence','editExecution']);if(types.has(mutation.type))ttQueueAutoPushSync(900)});
-Bus.on('saved',({reason}={})=>{if(['soon-minutes','web-push-subscribe','restore','restore-merge'].includes(reason))ttQueueAutoPushSync(800)});
+Bus.on('saved',({reason}={})=>{if(['soon-minutes','restore','restore-merge'].includes(reason))ttQueueAutoPushSync(800)});
 setTimeout(()=>ttQueueAutoPushSync(400),3500);
 
 

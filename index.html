@@ -3318,16 +3318,53 @@ async function ttSubscribePush(){
   try{
     if(!os.Notifications.isPushSupported())return toast('この環境ではWeb Pushを利用できません',3500);
     await os.User.PushSubscription.optIn();
+    await ttWaitPushOptedIn(true,5000);
     state.preferences.notifications.enabled=true;safeSave('web-push-subscribe',{backup:false});
-    setTimeout(()=>{closeFullPage();openNotificationSettings();toast('Web Pushを登録しました')},450);
+    ttQueueAutoPushSync(500);
+    setTimeout(()=>{closeFullPage();openNotificationSettings();toast('Web Pushをオンにしました')},450);
   }catch(err){console.error('OneSignal optIn',err);toast('Web Pushを登録できませんでした',4000)}
+}
+async function ttWaitPushOptedIn(expected,timeout=5000){
+  const started=Date.now();
+  while(Date.now()-started<timeout){
+    const os=ttOneSignal();
+    try{if(os&&!!os.User.PushSubscription.optedIn===expected)return true}catch{}
+    await new Promise(r=>setTimeout(r,200));
+  }
+  return false;
+}
+async function ttCancelAllAutoPushReservations(){
+  try{
+    const stored=ttAutoPushMap();
+    for(const entry of Object.values(stored)){
+      if(!entry?.messageId)continue;
+      try{await ttAutoPushCancelEntry(entry)}catch(err){console.warn('push cancel on opt-out',err)}
+    }
+    ttWriteJSON(TT_AUTOPUSH_MAP_KEY,{});
+    const prev=ttAutoPushStatus();
+    ttWriteJSON(TT_AUTOPUSH_STATUS_KEY,{...prev,lastSyncAt:Date.now(),scheduled:0});
+  }catch(err){console.warn('clear auto push reservations',err)}
 }
 async function ttUnsubscribePush(){
   const os=ttOneSignal();if(!os)return toast('OneSignalを準備中です');
-  try{await os.User.PushSubscription.optOut();setTimeout(()=>{closeFullPage();openNotificationSettings();toast('Web Pushをオフにしました')},300)}catch(err){console.error('OneSignal optOut',err);toast('Web Pushをオフにできませんでした')}
+  try{
+    await ttCancelAllAutoPushReservations();
+    await os.User.PushSubscription.optOut();
+    await ttWaitPushOptedIn(false,5000);
+    state.preferences.notifications.enabled=false;
+    safeSave('web-push-unsubscribe',{backup:false});
+    closeFullPage();
+    setTimeout(()=>{
+      openNotificationSettings();
+      toast('Web Pushをオフにしました');
+    },250);
+  }catch(err){
+    console.error('OneSignal optOut',err);
+    toast('Web Pushをオフにできませんでした',4000);
+  }
 }
 openNotificationSettings=function(){
-  const x=ttPushSnapshot(),status=!x.ready?'準備中':x.optedIn&&x.permission?'登録済み':x.permission?'許可済み':'未登録';
+  const x=ttPushSnapshot(),status=!x.ready?'準備中':x.optedIn&&x.permission?'Web Push ON':x.permission?'Web Push OFF':'未登録';
   const statusClass=x.optedIn&&x.permission?'good':'next';
   openFullPage({title:'通知',html:`
     <div class="hero"><div class="hero-kicker">OneSignal Web Push</div><div class="hero-value">${status}</div><div class="hero-sub">TodayTimeを閉じていても通知を受け取るための登録です</div></div>
@@ -3340,7 +3377,7 @@ openNotificationSettings=function(){
     </div>
     ${!x.standalone?'<div class="validation-box warn">iPhoneではSafariのページではなく、ホーム画面に追加したTodayTimeから開いて「Web Pushを登録」を押してください。</div>':''}
     <div class="score-insight ${statusClass}"><strong>${x.optedIn&&x.permission?'このiPhoneはOneSignalに登録されています':'まだOneSignalへの登録が完了していません'}</strong><span>${x.optedIn&&x.permission?'次はOneSignalからテストPushを送って、アプリを閉じた状態で届くか確認します。':'下のボタンは必ずホーム画面版TodayTimeから押してください。'}</span></div>
-    <button class="primary-wide" id="ttWebPushToggle">${x.optedIn?'Web Pushをオフにする':'Web Pushを登録する'}</button>
+    <button class="primary-wide" id="ttWebPushToggle">${x.optedIn?'Web Pushをオフにする':x.permission?'Web Pushをオンにする':'Web Pushを登録する'}</button>
     <button class="primary-wide" id="ttRefreshPush" style="background:var(--surface);color:var(--blue)">状態を再確認</button>
   `,bind:r=>{
     $('#ttWebPushToggle',r).onclick=()=>x.optedIn?ttUnsubscribePush():ttSubscribePush();
@@ -3472,20 +3509,21 @@ function openAutoPushServerSettings(){
 
 const ttOpenNotificationSettingsBase=openNotificationSettings;
 openNotificationSettings=function(){
-  const x=ttPushSnapshot(),c=ttAutoPushConfig(),s=ttAutoPushStatus(),status=!x.ready?'準備中':x.optedIn&&x.permission?'登録済み':x.permission?'許可済み':'未登録';
+  const x=ttPushSnapshot(),c=ttAutoPushConfig(),s=ttAutoPushStatus(),status=!x.ready?'準備中':x.optedIn&&x.permission?'Web Push ON':x.permission?'Web Push OFF':'未登録';
   openFullPage({title:'通知',html:`
     <div class="hero"><div class="hero-kicker">OneSignal Web Push</div><div class="hero-value">${status}</div><div class="hero-sub">TodayTimeを閉じていても予定時刻に通知します</div></div>
     <div class="full-group">
       <div class="full-row"><div><div class="full-row-title">ホーム画面アプリ</div></div><div class="full-row-value">${x.standalone?'はい':'いいえ'}</div></div>
       <div class="full-row"><div><div class="full-row-title">iOS通知許可</div></div><div class="full-row-value">${x.permission?'許可済み':'未許可'}</div></div>
-      <div class="full-row"><div><div class="full-row-title">OneSignal購読</div></div><div class="full-row-value">${x.optedIn?'登録済み':'未登録'}</div></div>
+      <div class="full-row"><div><div class="full-row-title">OneSignal購読</div></div><div class="full-row-value">${x.optedIn?'ON':'OFF'}</div></div>
       <div class="full-row"><div><div class="full-row-title">自動通知サーバー</div></div><div class="full-row-value">${c.url&&c.key?'設定済み':'未設定'}</div></div>
       <div class="full-row"><div><div class="full-row-title">予約済み通知</div><span class="full-row-sub">最大30日先まで自動予約</span></div><div class="full-row-value">${s.scheduled||0}件</div></div>
       <div class="full-row"><div><div class="full-row-title">最終同期</div></div><div class="full-row-value">${ttAutoPushDateLabel(s.lastSyncAt)}</div></div>
     </div>
+    ${x.permission&&!x.optedIn?'<div class="user-note" style="padding:10px 4px">iOSの「通知許可」はOS側の権限なので許可済みのままです。OneSignal購読がOFFならTodayTimeのWeb Pushは停止しています。</div>':''}
     ${s.lastError?`<div class="validation-box warn">前回の同期：${esc(s.lastError)}</div>`:''}
     ${!x.permission?'<button class="primary-wide" id="ttIOSPermission">iOSの通知を許可する</button>':''}
-    <button class="primary-wide" id="ttWebPushToggle" ${!x.permission&&!x.optedIn?'style="background:var(--surface);color:var(--blue)"':''}>${x.optedIn?'Web Pushをオフにする':'Web Pushを登録する'}</button>
+    <button class="primary-wide" id="ttWebPushToggle" ${!x.permission&&!x.optedIn?'style="background:var(--surface);color:var(--blue)"':''}>${x.optedIn?'Web Pushをオフにする':x.permission?'Web Pushをオンにする':'Web Pushを登録する'}</button>
     <button class="primary-wide" id="ttServerSettings" style="background:var(--surface);color:var(--blue)">自動通知サーバー設定</button>
     <button class="primary-wide" id="ttSyncPush" style="background:var(--surface);color:var(--blue)">今すぐ予定通知を同期</button>
     <button class="primary-wide" id="ttRefreshPush" style="background:var(--surface);color:var(--blue)">状態を再確認</button>

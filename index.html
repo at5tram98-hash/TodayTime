@@ -23,11 +23,10 @@
     try {
       await OneSignal.init({
         appId: "048a698f-32ac-4a9a-bbaa-398b61959754",
-        serviceWorkerPath: "/TodayTime/OneSignalSDKWorker.js",
+        serviceWorkerPath: "TodayTime/OneSignalSDKWorker.js",
         serviceWorkerParam: { scope: "/TodayTime/" },
         notifyButton: { enable: false }
       });
-
       window.TodayTimeOneSignal = OneSignal;
       window.TodayTimeOneSignalStatus = "ready";
       window.TodayTimeOneSignalError = null;
@@ -37,7 +36,6 @@
       window.TodayTimeOneSignalStatus = "error";
       window.TodayTimeOneSignalError = String(err?.message || err || "init_failed");
     }
-
     window.dispatchEvent(new Event("tt-onesignal-state-change"));
   });
 </script>
@@ -3266,10 +3264,9 @@ function openPlanningActionMenu(anchor){openActionSheet([{label:'TRP（今日の
 /* ===== TodayTime Web Push settings (OneSignal) ===== */
 function ttIsStandalone(){return !!(window.matchMedia?.('(display-mode: standalone)')?.matches||navigator.standalone===true)}
 function ttOneSignal(){return window.TodayTimeOneSignal||null}
-window.addEventListener('tt-onesignal-state-change',()=>{try{if(runtime?.tab==='settings')renderSettings()}catch{}});
 function ttPushSnapshot(){
-  const os=ttOneSignal(),initStatus=window.TodayTimeOneSignalStatus||'loading',initError=window.TodayTimeOneSignalError||null;
-  if(!os)return {ready:false,error:initStatus==='error'?initError:null,supported:false,permission:false,optedIn:false,id:null,standalone:ttIsStandalone()};
+  const os=ttOneSignal(),status=window.TodayTimeOneSignalStatus||"loading",error=window.TodayTimeOneSignalError||null;
+  if(!os)return {ready:false,error:status==="error"?error:null,supported:false,permission:false,optedIn:false,id:null,standalone:ttIsStandalone()};
   let supported=false,permission=false,optedIn=false,id=null;
   try{supported=!!os.Notifications.isPushSupported()}catch{}
   try{permission=!!os.Notifications.permission}catch{}
@@ -3298,7 +3295,7 @@ openNotificationSettings=function(){
     <div class="hero"><div class="hero-kicker">OneSignal Web Push</div><div class="hero-value">${status}</div><div class="hero-sub">TodayTimeを閉じていても通知を受け取るための登録です</div></div>
     <div class="full-group">
       <div class="full-row"><div><div class="full-row-title">ホーム画面アプリ</div><span class="full-row-sub">iPhoneのWeb Pushでは必要です</span></div><div class="full-row-value">${x.standalone?'はい':'いいえ'}</div></div>
-      <div class="full-row"><div><div class="full-row-title">Web Push対応</div></div><div class="full-row-value">${x.error?'初期化失敗':!x.ready?'確認中':x.supported?'対応':'非対応'}</div></div>
+      <div class="full-row"><div><div class="full-row-title">Web Push対応</div></div><div class="full-row-value">${!x.ready?'確認中':x.supported?'対応':'非対応'}</div></div>
       <div class="full-row"><div><div class="full-row-title">iOS通知許可</div></div><div class="full-row-value">${x.permission?'許可済み':'未許可'}</div></div>
       <div class="full-row"><div><div class="full-row-title">OneSignal購読</div></div><div class="full-row-value">${x.optedIn?'登録済み':'未登録'}</div></div>
       ${x.id?`<div class="full-row"><div><div class="full-row-title">Subscription ID</div><span class="full-row-sub">OneSignalでこのiPhoneを識別するID</span></div><div class="full-row-value" style="max-width:145px;overflow:hidden;text-overflow:ellipsis">${esc(x.id.slice(0,8)+'…'+x.id.slice(-6))}</div></div>`:''}
@@ -3437,7 +3434,7 @@ function openAutoPushServerSettings(){
 
 const ttOpenNotificationSettingsBase=openNotificationSettings;
 openNotificationSettings=function(){
-  const x=ttPushSnapshot(),c=ttAutoPushConfig(),s=ttAutoPushStatus(),status=!x.ready?'準備中':x.optedIn&&x.permission?'登録済み':x.permission?'許可済み':'未登録';
+  const x=ttPushSnapshot(),c=ttAutoPushConfig(),s=ttAutoPushStatus(),status=x.error?'エラー':!x.ready?'初期化中':x.optedIn&&x.permission?'登録済み':x.permission?'許可済み':'未登録';
   openFullPage({title:'通知',html:`
     <div class="hero"><div class="hero-kicker">OneSignal Web Push</div><div class="hero-value">${status}</div><div class="hero-sub">TodayTimeを閉じていても予定時刻に通知します</div></div>
     <div class="full-group">

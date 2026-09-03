@@ -6,13 +6,13 @@
 <meta name="theme-color" content="#f2f2f7">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="TodayTime">
+<meta name="apple-mobile-web-app-title" content="TodoyTimePro">
 <meta name="format-detection" content="telephone=no">
-<title>TodayTime 2.0 Final</title>
+<title>TodoyTimePro</title>
 <!-- TodayTime Web Push / PWA -->
 <link rel="manifest" href="/TodayTime/manifest.json">
 <link rel="apple-touch-icon" sizes="180x180" href="/TodayTime/apple-touch-icon.png">
-<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+<!-- Web Push temporarily disabled in TodoyTimePro -->
 <script>
   window.TodayTimeOneSignal = null;
   window.TodayTimeOneSignalStatus = "loading";
@@ -1301,6 +1301,61 @@ html[data-theme="dark"] .settings-icon,html[data-theme="dark"] .menu-icon,html[d
 .full-page .assignment-rich-actions{grid-column:2!important;justify-self:center!important;margin:0!important;display:flex!important;justify-content:center!important}
 .full-page .assignment-progress-btn{margin:0!important;text-align:center!important;white-space:nowrap!important}
 </style>
+
+<style id="todoytimepro-final-css">
+/* TodoyTimePro — 4-tab architecture */
+.tabbar{grid-template-columns:repeat(4,1fr)!important}
+#todayScreen,#schoolScreen{--legacy-offtab:1}
+#monthtimeScreen{overflow:auto;background:var(--bg)}
+#calendarScreen .calendar-view-segmented{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+
+/* Legacy Today is now a real interactive section inside Live. */
+.live-today-integrated{margin:18px 0 4px;padding:0 16px 32px}
+.live-today-integrated-head{display:flex;align-items:end;justify-content:space-between;margin:26px 4px 10px;padding-top:20px;border-top:.5px solid var(--line)}
+.live-today-integrated-head h2{font-size:24px;letter-spacing:-.6px;margin:0}
+.live-today-integrated-head span{font-size:11px;color:var(--muted)}
+.live-today-integrated .content{padding:0!important}
+.live-today-integrated .today-agenda{border-radius:18px}
+.live-today-integrated .today-row{grid-template-columns:64px minmax(0,1fr) auto!important;min-height:52px!important;padding:6px 12px!important;gap:10px!important;align-items:center!important;text-align:left!important}
+.live-today-integrated .today-copy,.live-today-integrated .today-name-line,.live-today-integrated .today-name{text-align:left!important;justify-content:flex-start!important}
+.live-today-integrated .today-name{font-size:15px!important;line-height:1.18!important}
+.live-today-integrated .today-meta{margin-top:2px!important;line-height:1.2!important;text-align:left!important}
+.live-today-integrated .today-time{text-align:left!important}
+.live-today-integrated .today-time strong{font-size:14px!important;line-height:1.1!important}
+.live-today-integrated .today-time span{display:block;margin-top:2px;line-height:1.1}
+.live-today-integrated .visual-dashboard{grid-template-columns:126px minmax(0,1fr)!important;gap:10px!important}
+.live-today-integrated .visual-dashboard .weekly-card{grid-column:1/-1!important}
+
+/* MonthTime: month-first, event-rich calendar. */
+.monthtime-topbar{position:sticky;top:0;z-index:40;padding:calc(var(--safe-top) + 10px) 14px 10px;background:color-mix(in srgb,var(--bg) 94%,transparent);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);border-bottom:.5px solid var(--line)}
+.monthtime-title-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center}
+.monthtime-brand{min-width:0}.monthtime-brand small{display:block;font-size:11px;color:var(--muted);font-weight:650}.monthtime-brand h1{margin:2px 0 0;font-size:30px;line-height:1;letter-spacing:-1px}
+.monthtime-actions{display:flex;gap:7px}.monthtime-actions .round-btn{width:40px;height:40px;min-width:40px;min-height:40px}
+.monthtime-nav{display:grid;grid-template-columns:44px minmax(0,1fr) 44px;align-items:center;margin-top:10px}
+.monthtime-nav button{min-width:44px;min-height:40px;color:var(--blue);display:grid;place-items:center}
+.monthtime-nav strong{text-align:center;font-size:18px;letter-spacing:-.35px}
+.monthtime-dow{position:sticky;top:calc(var(--safe-top) + 108px);z-index:30;display:grid;grid-template-columns:repeat(7,1fr);background:color-mix(in srgb,var(--bg) 96%,transparent);border-bottom:.5px solid var(--line)}
+.monthtime-dow span{text-align:center;padding:7px 0 6px;font-size:10px;font-weight:650;color:var(--muted)}
+.monthtime-dow span:first-child{color:var(--red)}
+.monthtime-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));padding:0 8px 30px}
+.monthtime-cell{min-width:0;min-height:96px;border-right:.5px solid var(--line);border-bottom:.5px solid var(--line);padding:4px 3px 5px;background:var(--bg);overflow:hidden}
+.monthtime-cell:nth-child(7n+1){border-left:.5px solid var(--line)}
+.monthtime-cell.out{opacity:.34}
+.monthtime-cell.today{background:color-mix(in srgb,var(--blue) 4%,var(--bg))}
+.monthtime-date{width:27px;height:27px;min-width:27px;min-height:27px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:650;margin:0 auto 2px}
+.monthtime-cell.today .monthtime-date{background:var(--red);color:#fff;font-weight:800}
+.monthtime-event{width:100%;min-width:0!important;min-height:18px!important;display:grid;grid-template-columns:3px minmax(0,1fr);gap:3px;align-items:center;text-align:left;border-radius:4px;padding:1px 3px;margin-top:2px;background:var(--surface);font-size:7.8px;line-height:1.15;overflow:hidden}
+.monthtime-event i{display:block;width:3px;height:13px;border-radius:3px;background:var(--event-color,var(--blue))}
+.monthtime-event span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.monthtime-event b{font-weight:750;margin-right:2px}
+.monthtime-more{font-size:8px;color:var(--muted);padding:3px 2px 0;text-align:center}
+.monthtime-empty-note{padding:24px 18px 36px;text-align:center;color:var(--muted);font-size:12px}
+.monthtime-sync-strip{margin:10px 14px 0;padding:10px 12px;border-radius:14px;background:var(--surface);box-shadow:0 .5px 0 var(--line);display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center}
+.monthtime-sync-strip strong{display:block;font-size:12px}.monthtime-sync-strip span{display:block;margin-top:2px;font-size:10px;color:var(--muted)}
+.monthtime-sync-strip button{min-height:34px;padding:0 11px;border-radius:10px;background:var(--surface3);color:var(--blue);font-size:11px;font-weight:700}
+.pro-stopped-badge{display:inline-flex;align-items:center;min-height:22px;padding:0 8px;border-radius:999px;background:rgba(142,142,147,.14);color:var(--muted);font-size:10px;font-weight:750}
+@media(max-width:390px){.monthtime-grid{padding-inline:5px}.monthtime-cell{min-height:88px;padding-inline:2px}.monthtime-event{font-size:7.2px;padding-inline:2px}.live-today-integrated .today-row{grid-template-columns:58px minmax(0,1fr) auto!important;padding-inline:10px!important}}
+</style>
+
 </head>
 <body>
 <div id="splash" class="tt-splash" aria-label="TodayTime" aria-hidden="false">
@@ -1315,20 +1370,20 @@ html[data-theme="dark"] .settings-icon,html[data-theme="dark"] .menu-icon,html[d
         <path d="M60 7v7M73 7v7M54 17.5h25" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
       </svg>
     </div>
-    <div class="tt-splash-wordmark">TodayTime</div>
+    <div class="tt-splash-wordmark">TodoyTimePro</div>
   </div>
 </div>
 <div id="app">
-  <main id="liveScreen" class="screen active" aria-label="Live"></main>
-  <main id="calendarScreen" class="screen" aria-label="カレンダー"></main>
-  <main id="todayScreen" class="screen" aria-label="今日"></main>
+  <main id="liveScreen" class="screen" aria-label="Live"></main>
+  <main id="calendarScreen" class="screen" aria-label="TodayTime"></main>
+  <main id="monthtimeScreen" class="screen active" aria-label="MonthTime"></main>
+  <main id="todayScreen" class="screen" aria-label="旧Today（Live統合用）"></main>
   <main id="schoolScreen" class="screen" aria-label="大学"></main>
   <main id="settingsScreen" class="screen" aria-label="設定"></main>
   <nav class="tabbar" aria-label="メインタブ">
-    <button class="tab active" data-tab="live"><span data-icon="bolt"></span><span>Live</span></button>
-    <button class="tab" data-tab="calendar"><span data-icon="calendar"></span><span>カレンダー</span></button>
-    <button class="tab" data-tab="today"><span data-icon="today"></span><span>今日</span></button>
-    <button class="tab" data-tab="school"><span data-icon="book"></span><span>大学</span></button>
+    <button class="tab" data-tab="live"><span data-icon="bolt"></span><span>Live</span></button>
+    <button class="tab" data-tab="calendar"><span data-icon="today"></span><span>TodayTime</span></button>
+    <button class="tab active" data-tab="monthtime"><span data-icon="calendar"></span><span>MonthTime</span></button>
     <button class="tab" data-tab="settings"><span data-icon="gear"></span><span>設定</span></button>
   </nav>
 </div>
@@ -1646,7 +1701,7 @@ function findOccurrenceByKey(k,key){return DayModel.build(k).occurrences.find(o=
 /* 矢印ナビを廃止し、日付移動は横スワイプに統一 */
 function calendarShiftDate(view,dir){const base=parseDateKey(runtime.selectedDate);runtime.selectedDate=view==='year'?dateKey(new Date(base.getFullYear()+dir,0,1)):view==='month'?dateKey(new Date(base.getFullYear(),base.getMonth()+dir,1)):view==='week'?addDaysKey(runtime.selectedDate,dir*7):addDaysKey(runtime.selectedDate,dir*2)}
 function bindCalendarSwipeNavigation(root,view){if(!root)return;let sx=0,sy=0,dx=0,dy=0,horizontal=false,active=false;root.addEventListener('touchstart',e=>{if(e.touches.length!==1||e.target.closest('.cal-event,.cal-sub,input,textarea,select,[data-no-calendar-swipe]'))return;const t=e.touches[0];sx=t.clientX;sy=t.clientY;dx=dy=0;horizontal=false;active=true},{passive:true});root.addEventListener('touchmove',e=>{if(!active||e.touches.length!==1)return;const t=e.touches[0];dx=t.clientX-sx;dy=t.clientY-sy;if(!horizontal&&Math.abs(dx)>9&&Math.abs(dx)>Math.abs(dy)*1.35)horizontal=true;if(!horizontal)return;root.classList.add('calendar-swipe-preview');root.style.setProperty('--calendar-drag-x',`${clamp(dx*.28,-34,34)}px`);if(e.cancelable)e.preventDefault()},{passive:false});const finish=()=>{if(!active)return;active=false;root.classList.remove('calendar-swipe-preview');root.style.removeProperty('--calendar-drag-x');if(horizontal&&Math.abs(dx)>52){runtime.calendarSwipeGuardUntil=Date.now()+420;const dir=dx<0?1:-1;root.classList.add(dir>0?'calendar-swipe-release-left':'calendar-swipe-release-right');vibrate(6);setTimeout(()=>{calendarShiftDate(view,dir);renderCalendar()},110)}};root.addEventListener('touchend',finish,{passive:true});root.addEventListener('touchcancel',()=>{active=false;root.classList.remove('calendar-swipe-preview');root.style.removeProperty('--calendar-drag-x')},{passive:true});root.addEventListener('click',e=>{if(Date.now()<(runtime.calendarSwipeGuardUntil||0)){e.preventDefault();e.stopImmediatePropagation()}},true)}
-function renderCalendarCore(){const root=$('#calendarScreen'),base=parseDateKey(runtime.selectedDate),view=runtime.calendarView,planState=nextDayPlanVisualState(nextDayKey());const title=view==='year'?base.getFullYear()+'年':view==='month'?`${base.getFullYear()}年 ${base.getMonth()+1}月`:base.getMonth()+1+'月';root.innerHTML=`<div class="topbar calendar-topbar"><div class="calendar-toolbar"><div class="calendar-toolbar-top"><div class="calendar-nav"><button class="calendar-nav-title" id="calToday" aria-label="今日へ戻る">${title}</button></div><div class="calendar-tool-icons"><button class="round-btn calendar-jobs-btn" id="calendarJobs" aria-label="バイトモード">${icon('job')}</button><button class="round-btn" id="calSearch" aria-label="検索">${icon('search')}</button><button class="round-btn" id="calAdd" aria-label="予定を追加">${icon('plus')}</button><button class="round-btn calendar-nextday-btn" id="calendarNextDay" aria-label="翌日計画">${icon('nextday')}<i class="nextday-state-dot ${planState}"></i></button></div></div><div class="segmented calendar-view-segmented" id="calSegments">${[['two','2日'],['week','週'],['month','月'],['year','年']].map(([v,n])=>`<button data-view="${v}" class="${view===v?'active':''}" aria-label="${n}表示">${n}</button>`).join('')}</div></div></div><div id="calendarBody"></div>`;$('#calendarJobs').onclick=()=>openJobsPage();$('#calSearch').onclick=openCalendarSearch;$('#calAdd').onclick=()=>openCalendarAddMenu(runtime.selectedDate);$('#calendarNextDay').onclick=()=>openNextDayPlanner();$('#calToday').onclick=()=>{runtime.selectedDate=dateKey(new Date());runtime.calendarView='two';renderCalendar()};$$('[data-view]',root).forEach(b=>b.onclick=()=>{runtime.calendarView=b.dataset.view;state.preferences.calendar.view=runtime.calendarView;safeSave('calendar-view',{backup:false});renderCalendar()});if(view==='two')renderTwoDayCalendar();else if(view==='week')renderWeekCalendar();else if(view==='month')renderMonthCalendar();else renderYearCalendar();bindCalendarSwipeNavigation($('#calendarBody',root),view);if(runtime.highlightOccurrenceKey){const key=runtime.highlightOccurrenceKey;setTimeout(()=>{if(runtime.highlightOccurrenceKey===key)runtime.highlightOccurrenceKey=null},900)}}
+function renderCalendarCore(){const root=$('#calendarScreen'),base=parseDateKey(runtime.selectedDate),view=runtime.calendarView,planState=nextDayPlanVisualState(nextDayKey());const title=view==='year'?base.getFullYear()+'年':view==='month'?`${base.getFullYear()}年 ${base.getMonth()+1}月`:base.getMonth()+1+'月';root.innerHTML=`<div class="topbar calendar-topbar"><div class="calendar-toolbar"><div class="calendar-toolbar-top"><div class="calendar-nav"><button class="calendar-nav-title" id="calToday" aria-label="今日へ戻る">${title}</button></div><div class="calendar-tool-icons"><button class="round-btn calendar-jobs-btn" id="calendarJobs" aria-label="バイトモード">${icon('job')}</button><button class="round-btn" id="calSearch" aria-label="検索">${icon('search')}</button><button class="round-btn" id="calAdd" aria-label="予定を追加">${icon('plus')}</button><button class="round-btn calendar-nextday-btn" id="calendarNextDay" aria-label="翌日計画">${icon('nextday')}<i class="nextday-state-dot ${planState}"></i></button></div></div><div class="segmented calendar-view-segmented" id="calSegments">${[['two','2日'],['week','週']].map(([v,n])=>`<button data-view="${v}" class="${view===v?'active':''}" aria-label="${n}表示">${n}</button>`).join('')}</div></div></div><div id="calendarBody"></div>`;$('#calendarJobs').onclick=()=>openJobsPage();$('#calSearch').onclick=openCalendarSearch;$('#calAdd').onclick=()=>openCalendarAddMenu(runtime.selectedDate);$('#calendarNextDay').onclick=()=>openNextDayPlanner();$('#calToday').onclick=()=>{runtime.selectedDate=dateKey(new Date());runtime.calendarView='two';renderCalendar()};$$('[data-view]',root).forEach(b=>b.onclick=()=>{runtime.calendarView=b.dataset.view;state.preferences.calendar.view=runtime.calendarView;safeSave('calendar-view',{backup:false});renderCalendar()});if(view==='two')renderTwoDayCalendar();else if(view==='week')renderWeekCalendar();else if(view==='month')renderMonthCalendar();else renderYearCalendar();bindCalendarSwipeNavigation($('#calendarBody',root),view);if(runtime.highlightOccurrenceKey){const key=runtime.highlightOccurrenceKey;setTimeout(()=>{if(runtime.highlightOccurrenceKey===key)runtime.highlightOccurrenceKey=null},900)}}
 function intervalLanes(items){const sorted=items.slice().sort((a,b)=>a.startMinute-b.startMinute||a.endMinute-b.endMinute),active=[],result=new Map();for(const it of sorted){for(let i=active.length-1;i>=0;i--)if(active[i].endMinute<=it.startMinute)active.splice(i,1);const used=new Set(active.map(a=>a.lane));let lane=0;while(used.has(lane))lane++;active.push({...it,lane});const count=Math.max(...active.map(a=>a.lane))+1;active.forEach(a=>result.set(a.id,{lane:a.lane,count:Math.max(result.get(a.id)?.count||0,count)}))}return result}
 function renderTwoDayCalendarCore(){const body=$('#calendarBody'),k1=runtime.selectedDate,k2=addDaysKey(k1,1),d1=parseDateKey(k1),d2=parseDateKey(k2),today=dateKey(new Date()),m=calendarMetrics(),axis=Array.from({length:25},(_,h)=>`<span class="time-mark" style="top:${m.y(h*60)}px">${pad(h%24)}:00</span>`).join('');body.innerHTML=`<div class="calendar-scroll" id="calendarScroll"><div class="day-heads"><div></div><button class="day-head ${k1===today?'today':''}" data-day-head="${k1}"><strong>${fmtDate(d1)}</strong><span>${DayModel.build(k1).primary.length}件</span></button><button class="day-head ${k2===today?'today':''}" data-day-head="${k2}"><strong>${fmtDate(d2)}</strong><span>${DayModel.build(k2).primary.length}件</span></button></div><div class="calendar-grid"><div class="time-axis" style="height:${m.total}px">${axis}</div>${renderDayColumn(k1,m)}${renderDayColumn(k2,m)}</div></div>`;$$('[data-day-head]',body).forEach(b=>b.onclick=()=>openDayDetail(b.dataset.dayHead));bindCalendarGrid(m);const sc=$('#calendarScroll');const now=new Date();requestAnimationFrame(()=>{if([k1,k2].includes(today))sc.scrollTop=Math.max(0,m.y(now.getHours()*60+now.getMinutes())-220);else sc.scrollTop=m.y(trackingRange(k1).startMinute)-30});bindCalendarPinch(sc,m)}
 function bindCalendarPinch(sc,m){let start=0,zoom=state.preferences.calendar.zoom||1;if(!sc)return;const dist=t=>Math.hypot(t[0].clientX-t[1].clientX,t[0].clientY-t[1].clientY);sc.addEventListener('touchstart',e=>{if(e.touches.length===2){start=dist(e.touches);zoom=state.preferences.calendar.zoom||1}},{passive:true});sc.addEventListener('touchmove',e=>{if(e.touches.length===2&&start){e.preventDefault();sc.dataset.preview=String(clamp(zoom*dist(e.touches)/start,.75,2.05))}},{passive:false});sc.addEventListener('touchend',()=>{if(start){const z=clamp(+sc.dataset.preview||zoom,.75,2.05);start=0;delete sc.dataset.preview;if(Math.abs(z-(state.preferences.calendar.zoom||1))>.04){state.preferences.calendar.zoom=z;safeSave('calendar-zoom',{backup:false});renderCalendar();toast(`カレンダー ${Math.round(z*100)}%`)}}},{passive:true})}
@@ -3465,6 +3520,81 @@ NotificationScheduler.tick=function(){if(ttAutoPushReady())return;return ttLocal
 Bus.on('mutation',({mutation}={})=>{if(!mutation)return;const types=new Set(['createTemplate','updateOccurrence','moveOccurrence','resizeOccurrence','deleteOccurrence','applyNextDayTemplates','startOccurrence','finishOccurrence','editExecution']);if(types.has(mutation.type))ttQueueAutoPushSync(900)});
 Bus.on('saved',({reason}={})=>{if(['soon-minutes','web-push-subscribe','restore','restore-merge'].includes(reason))ttQueueAutoPushSync(800)});
 setTimeout(()=>ttQueueAutoPushSync(400),3500);
+
+
+
+/* ===== TodoyTimePro final architecture ===== */
+const TT_PRO_TAB_MIGRATION='todoytimepro:tab-architecture:v1';
+if(!localStorage.getItem(TT_PRO_TAB_MIGRATION)){
+  runtime.tab='monthtime';
+  runtime.calendarView='two';
+  state.meta.lastTab='monthtime';
+  state.preferences.calendar.view='two';
+  try{safeSave('todoytimepro-tabs',{backup:false});localStorage.setItem(TT_PRO_TAB_MIGRATION,'1')}catch{}
+}
+
+/* MonthTime owns month navigation; TodayTime remains the detailed today/tomorrow calendar. */
+runtime.monthtimeDate=runtime.monthtimeDate||dateKey(new Date());
+function monthtimeBaseDate(){return parseDateKey(runtime.monthtimeDate||dateKey(new Date()))}
+function monthtimeMove(delta){const d=monthtimeBaseDate();runtime.monthtimeDate=dateKey(new Date(d.getFullYear(),d.getMonth()+delta,1));renderMonthTime()}
+function monthtimeEventColor(o){try{return o.source==='event'?eventVisualColor(o):(systemCal(o)?.color||o.color||'#8e8e93')}catch{return '#8e8e93'}}
+function renderMonthTime(){
+  const root=$('#monthtimeScreen');if(!root)return;
+  const base=monthtimeBaseDate(),y=base.getFullYear(),mo=base.getMonth(),first=new Date(y,mo,1),start=new Date(y,mo,1-first.getDay()),today=dateKey(new Date());
+  const cells=Array.from({length:42},(_,i)=>{
+    const d=new Date(+start+i*DAY),k=dateKey(d),model=DayModel.build(k),items=(model.primary||[]).filter(o=>o.source!=='autoRest').sort((a,b)=>a.startMinute-b.startMinute),shown=items.slice(0,3),extra=Math.max(0,items.length-shown.length);
+    return `<div class="monthtime-cell ${d.getMonth()===mo?'':'out'} ${k===today?'today':''}" data-monthtime-day="${k}"><button class="monthtime-date" data-monthtime-open-day="${k}" aria-label="${k}">${d.getDate()}</button>${shown.map(o=>`<button class="monthtime-event" data-monthtime-occ="${esc(o.occurrenceKey)}" data-monthtime-date="${k}" style="--event-color:${monthtimeEventColor(o)}"><i></i><span><b>${minsTime(o.startMinute)}</b>${esc(o.title)}</span></button>`).join('')}${extra?`<div class="monthtime-more">＋${extra}件</div>`:''}</div>`
+  }).join('');
+  root.innerHTML=`<div class="monthtime-topbar"><div class="monthtime-title-row"><div class="monthtime-brand"><small>TodoyTimePro</small><h1>MonthTime</h1></div><div class="monthtime-actions"><button class="round-btn" id="monthtimeSearch" aria-label="検索">${icon('search')}</button><button class="round-btn" id="monthtimeAdd" aria-label="予定を追加">${icon('plus')}</button></div></div><div class="monthtime-nav"><button id="monthtimePrev" aria-label="前の月">${icon('back')}</button><strong>${y}年 ${mo+1}月</strong><button id="monthtimeNext" aria-label="次の月">${icon('forward')}</button></div></div><div class="monthtime-sync-strip"><div><strong>TimeTree連携</strong><span>手動反映＋1日1回自動更新の方式で接続予定</span></div><button id="monthtimeTimeTree">状態</button></div><div class="monthtime-dow">${'日月火水木金土'.split('').map(x=>`<span>${x}</span>`).join('')}</div><div class="monthtime-grid">${cells}</div>`;
+  $('#monthtimePrev',root).onclick=()=>monthtimeMove(-1);$('#monthtimeNext',root).onclick=()=>monthtimeMove(1);
+  $('#monthtimeSearch',root).onclick=openCalendarSearch;$('#monthtimeAdd',root).onclick=()=>openCalendarAddMenu(runtime.monthtimeDate||today);
+  $('#monthtimeTimeTree',root).onclick=openTimeTreeProStatus;
+  $$('[data-monthtime-open-day]',root).forEach(b=>b.onclick=e=>{e.stopPropagation();openDayDetail(b.dataset.monthtimeOpenDay)});
+  $$('[data-monthtime-occ]',root).forEach(b=>b.onclick=e=>{e.stopPropagation();openOccurrence(findOccurrenceByKey(b.dataset.monthtimeDate,b.dataset.monthtimeOcc))});
+  $$('[data-monthtime-day]',root).forEach(c=>c.onclick=e=>{if(e.target.closest('button'))return;openDayDetail(c.dataset.monthtimeDay)});
+}
+function openTimeTreeProStatus(){
+  openFullPage({title:'TimeTree連携',subtitle:'MonthTimeへ予定を反映',html:`<div class="hero"><div class="hero-kicker">TimeTree Web</div><div class="hero-value" style="font-size:28px">手動同期方式</div><div class="hero-sub">TimeTreeへ自分でログインし、反映ボタンでTodoyTimeProへ取り込む設計です。1日1回の自動更新もこの連携方式を基準にします。</div></div><div class="full-group"><div class="full-row"><div><div class="full-row-title">現在の接続状態</div><span class="full-row-sub">単一HTMLから別ドメインのログイン済み画面を直接読み取ることはブラウザ制約でできません</span></div><div class="full-row-value"><span class="pro-stopped-badge">接続ブリッジ待ち</span></div></div><div class="full-row"><div><div class="full-row-title">予定データ</div><span class="full-row-sub">TodoyTimePro内の予定はMonthTimeに即時表示されます</span></div><div class="full-row-value">利用可能</div></div></div><button class="primary-wide" id="openTimeTreeWeb">TimeTree Webを開く</button><div class="validation-box warn">このファイルでは、動作しない「反映済み」を偽装せず、TimeTree読み取り部分だけ接続待ちにしています。カレンダー本体・4タブ化・Live統合は動作します。</div>`,bind:r=>{$('#openTimeTreeWeb',r).onclick=()=>window.open('https://timetreeapp.com/','_blank')}})
+}
+
+/* Keep old Today fully interactive, but render its content at the bottom of Live. */
+function ttProIntegrateTodayIntoLive(){
+  if(runtime.tab!=='live')return;
+  const live=$('#liveScreen'),content=$('#todayScreen .content');if(!live||!content)return;
+  $('#liveTodayIntegrated',live)?.remove();
+  const section=document.createElement('section');section.id='liveTodayIntegrated';section.className='live-today-integrated';section.innerHTML=`<div class="live-today-integrated-head"><h2>Today</h2><span>旧「今日」タブをLiveへ統合</span></div>`;
+  section.appendChild(content);live.appendChild(section);
+}
+const ttProRenderTodayBase=renderToday;
+renderToday=function(){const out=ttProRenderTodayBase.apply(this,arguments);ttProIntegrateTodayIntoLive();return out};
+const ttProLiveRenderBase=LiveController.renderStructure;
+LiveController.renderStructure=function(){const out=ttProLiveRenderBase.apply(this,arguments);if(runtime.tab==='live')renderToday();return out};
+
+/* TodayTime is the detailed 2-day/week calendar. */
+const ttProRenderCalendarBase=renderCalendar;
+renderCalendar=function(){if(!['two','week'].includes(runtime.calendarView))runtime.calendarView='two';const out=ttProRenderCalendarBase.apply(this,arguments);const root=$('#calendarScreen');root?.setAttribute('aria-label','TodayTime');return out};
+
+/* Four visible tabs; legacy School remains reachable from Today data without becoming a tab. */
+setTab=function(tab,{history=true}={}){
+  if(tab==='today')tab='live';
+  if(!['live','calendar','monthtime','school','settings'].includes(tab))tab='monthtime';
+  runtime.tab=tab;state.meta.lastTab=tab;safeSave('tab',{backup:false});
+  $$('.screen').forEach(s=>s.classList.remove('active'));
+  $$('.tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
+  const screenId=tab==='calendar'?'calendarScreen':tab==='monthtime'?'monthtimeScreen':`${tab}Screen`;
+  $(`#${screenId}`)?.classList.add('active');renderCurrent()
+};
+renderCurrent=function({preserveScroll=false}={}){
+  const screenId=runtime.tab==='calendar'?'calendarScreen':runtime.tab==='monthtime'?'monthtimeScreen':`${runtime.tab}Screen`,screen=$(`#${screenId}`),y=preserveScroll?screen?.scrollTop||0:0;
+  if(runtime.tab==='live')LiveController.renderStructure();else if(runtime.tab==='calendar')renderCalendar();else if(runtime.tab==='monthtime')renderMonthTime();else if(runtime.tab==='school')renderSchool();else renderSettings();
+  if(preserveScroll&&screen)requestAnimationFrame(()=>screen.scrollTop=y)
+};
+
+/* Web Push is intentionally stopped for the Pro transition. */
+try{ttQueueAutoPushSync=function(){};ttSyncAutoPush=async function(){return false};NotificationScheduler.tick=function(){}}catch{}
+openNotificationSettings=function(){openFullPage({title:'通知',html:`<div class="hero"><div class="hero-kicker">Web Push</div><div class="hero-value" style="font-size:30px">機能停止中</div><div class="hero-sub">TodoyTimePro向けに通知システムを再設計しています。</div></div><div class="full-group"><div class="full-row"><div><div class="full-row-title">Web Push</div><span class="full-row-sub">OneSignal / 自動通知サーバー</span></div><div class="full-row-value"><span class="pro-stopped-badge">停止中</span></div></div><div class="full-row"><div><div class="full-row-title">既存設定</div><span class="full-row-sub">将来の再開に備えて端末内データは削除しません</span></div><div class="full-row-value">保持</div></div></div>`})};
+const ttProRenderSettingsBase=renderSettings;
+renderSettings=function(){const out=ttProRenderSettingsBase.apply(this,arguments),root=$('#settingsScreen'),row=$('#notificationRow',root);if(row){$('.settings-name',row).textContent='Web Push';$('.settings-sub',row).textContent='TodoyTimePro向け通知システムを再設計中';$('.settings-value',row).textContent='機能停止中';row.onclick=openNotificationSettings}return out};
 
 
 setTab(runtime.tab,{history:false});

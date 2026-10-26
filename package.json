@@ -1,0 +1,12 @@
+{
+  "name": "todaytime-pro",
+  "version": "3.0.0",
+  "private": true,
+  "type": "module",
+  "description": "TodayTime Pro — today/tomorrow-focused tasks, schedule and time tracking PWA. No build step: native ES modules served by GitHub Pages.",
+  "scripts": {
+    "test": "node --test tests/unit/*.test.js",
+    "test:e2e": "node tests/e2e/run.js",
+    "serve": "node tests/e2e/serve.js 4173"
+  }
+}

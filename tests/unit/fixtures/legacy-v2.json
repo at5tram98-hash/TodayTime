@@ -1,0 +1,455 @@
+{
+ "schemaVersion": 2,
+ "revision": 3,
+ "meta": {
+  "createdAt": 1793019706995,
+  "updatedAt": 1793019706999,
+  "migratedFrom": null,
+  "lastTab": "monthtime",
+  "bundledSeedVersion": "2026-09-02-final"
+ },
+ "data": {
+  "calendars": [
+   {
+    "id": "plan",
+    "name": "予定",
+    "color": "#0a84ff",
+    "kind": "plan"
+   },
+   {
+    "id": "travel",
+    "name": "移動時間",
+    "color": "#34c759",
+    "kind": "travel"
+   },
+   {
+    "id": "rest",
+    "name": "休",
+    "color": "#ff453a",
+    "kind": "rest"
+   },
+   {
+    "id": "prep",
+    "name": "準備",
+    "color": "#bf5af2",
+    "kind": "plan"
+   },
+   {
+    "id": "work",
+    "name": "アルバイト",
+    "color": "#ff9f0a",
+    "kind": "plan"
+   },
+   {
+    "id": "job:starter-job-gu",
+    "name": "GU",
+    "color": "#2d08ff",
+    "kind": "plan",
+    "jobId": "starter-job-gu"
+   },
+   {
+    "id": "job:starter-job-muji",
+    "name": "無印良品",
+    "color": "#ff9f0a",
+    "kind": "plan",
+    "jobId": "starter-job-muji"
+   }
+  ],
+  "eventTemplates": {
+   "ev1": {
+    "id": "ev1",
+    "title": "ゼミ",
+    "location": "3号館",
+    "calendarId": "plan",
+    "priority": 3,
+    "notes": "",
+    "planned": {
+     "date": "2026-10-26",
+     "startMinute": 780,
+     "durationMinute": 90
+    },
+    "constraints": {
+     "mode": "fixed"
+    },
+    "recurrenceSeriesId": "ser1",
+    "subSchedule": {
+     "items": [
+      {
+       "id": "s1",
+       "title": "資料印刷",
+       "plannedDurationMinute": 10
+      }
+     ]
+    },
+    "belongings": [
+     {
+      "id": "b1",
+      "text": "PC"
+     }
+    ],
+    "travelSet": {
+     "enabled": true,
+     "before": {
+      "durationMinute": 20
+     },
+     "after": null
+    },
+    "eventIcon": "book",
+    "allDay": false
+   },
+   "ev2": {
+    "id": "ev2",
+    "title": "GU シフト",
+    "calendarId": "job:starter-job-gu",
+    "jobId": "starter-job-gu",
+    "planned": {
+     "date": "2026-10-27",
+     "startMinute": 1020,
+     "durationMinute": 240
+    },
+    "constraints": {
+     "mode": "flexible"
+    }
+   }
+  },
+  "recurrenceSeries": {
+   "ser1": {
+    "id": "ser1",
+    "templateEventId": "ev1",
+    "recurrenceRule": {
+     "frequency": "weekly",
+     "interval": 1,
+     "byWeekdays": [
+      1
+     ],
+     "startDate": "2026-10-26",
+     "endMode": "count",
+     "untilDate": null,
+     "count": 3
+    }
+   }
+  },
+  "occurrenceOverrides": {
+   "ser1@2026-11-02": {
+    "occurrenceKey": "ser1@2026-11-02",
+    "seriesId": "ser1",
+    "originalDate": "2026-11-02",
+    "effectiveDate": "2026-11-03",
+    "patch": {
+     "planned": {
+      "date": "2026-11-03",
+      "startMinute": 800
+     }
+    },
+    "cancelled": false
+   }
+  },
+  "executions": {
+   "ev2@2026-10-27": {
+    "event": {
+     "actualStartAt": 1793091600000,
+     "actualEndAt": 1793106000000
+    }
+   }
+  },
+  "assignments": [
+   {
+    "id": "as1",
+    "title": "統計レポート",
+    "courseId": "c1",
+    "course": "統計学",
+    "kind": "homework",
+    "dueDate": "2026-10-30",
+    "dueTime": "23:59",
+    "priority": 5,
+    "estimateMinute": 90,
+    "progress": 40,
+    "completedAt": null,
+    "notes": "PDF"
+   }
+  ],
+  "looseTasks": [
+   {
+    "id": "l1",
+    "title": "洗濯",
+    "durationMinute": 20,
+    "priority": 3
+   }
+  ],
+  "quickTemplates": [
+   {
+    "id": "starter-quick-morning",
+    "name": "朝",
+    "title": "朝",
+    "location": "",
+    "calendarId": "plan",
+    "priority": 3,
+    "durationMinute": 60,
+    "initialStartMode": "fixed",
+    "initialStartMinute": 720,
+    "allowedStartDriftMinute": 60,
+    "constraints": {
+     "mode": "fixed",
+     "movable": true,
+     "resizable": true,
+     "conflictPolicy": "warn"
+    },
+    "subSchedule": {
+     "mode": "sequential",
+     "autoReflow": true,
+     "items": []
+    },
+    "belongings": [],
+    "travelSet": null,
+    "notes": "",
+    "iconName": "star",
+    "accentColor": "#0a84ff",
+    "createdAt": 1793019706995,
+    "updatedAt": 1793019706995,
+    "useCount": 0,
+    "lastUsedAt": null
+   },
+   {
+    "id": "starter-quick-bath",
+    "name": "お風呂",
+    "title": "お風呂",
+    "location": "",
+    "calendarId": "plan",
+    "priority": 3,
+    "durationMinute": 25,
+    "initialStartMode": "fixed",
+    "initialStartMinute": 1290,
+    "allowedStartDriftMinute": 60,
+    "constraints": {
+     "mode": "fixed",
+     "movable": true,
+     "resizable": true,
+     "conflictPolicy": "warn"
+    },
+    "subSchedule": {
+     "mode": "sequential",
+     "autoReflow": true,
+     "items": []
+    },
+    "belongings": [],
+    "travelSet": null,
+    "notes": "",
+    "iconName": "calendar",
+    "accentColor": "#0a84ff",
+    "createdAt": 1793019706995,
+    "updatedAt": 1793019706995,
+    "useCount": 0,
+    "lastUsedAt": null
+   },
+   {
+    "id": "starter-quick-night",
+    "name": "夜",
+    "title": "夜",
+    "location": "",
+    "calendarId": "plan",
+    "priority": 3,
+    "durationMinute": 80,
+    "initialStartMode": "fixed",
+    "initialStartMinute": 1140,
+    "allowedStartDriftMinute": 60,
+    "constraints": {
+     "mode": "fixed",
+     "movable": true,
+     "resizable": true,
+     "conflictPolicy": "warn"
+    },
+    "subSchedule": {
+     "mode": "sequential",
+     "autoReflow": true,
+     "items": []
+    },
+    "belongings": [],
+    "travelSet": null,
+    "notes": "",
+    "iconName": "calendar",
+    "accentColor": "#0a84ff",
+    "createdAt": 1793019706995,
+    "updatedAt": 1793019706995,
+    "useCount": 0,
+    "lastUsedAt": null
+   }
+  ],
+  "trackingBlocks": [],
+  "nextDayPlans": {},
+  "nextDayTemplates": [
+   {
+    "id": "starter-nextday-template-1",
+    "name": "テンプレート1",
+    "enabled": false,
+    "order": 0,
+    "items": [],
+    "createdAt": 1793019706995,
+    "updatedAt": 1793019706995
+   }
+  ],
+  "jobs": [
+   {
+    "id": "starter-job-gu",
+    "name": "GU",
+    "color": "#2d08ff",
+    "wagePerHour": 1300,
+    "transportCostPerShift": 840,
+    "defaultBreakMinute": 0,
+    "defaultStartMinute": 1020,
+    "defaultDurationMinute": 240,
+    "defaultTravelBeforeMinute": 50,
+    "defaultTravelAfterMinute": 80,
+    "arrivalBufferMinute": 10,
+    "location": "イオン洛南SC",
+    "notes": "",
+    "createdAt": 1793019706995,
+    "updatedAt": 1793019706995
+   },
+   {
+    "id": "starter-job-muji",
+    "name": "無印良品",
+    "color": "#ff9f0a",
+    "wagePerHour": 1200,
+    "transportCostPerShift": 980,
+    "defaultBreakMinute": 0,
+    "defaultStartMinute": 1020,
+    "defaultDurationMinute": 240,
+    "defaultTravelBeforeMinute": 50,
+    "defaultTravelAfterMinute": 50,
+    "arrivalBufferMinute": 10,
+    "location": "洛北阪急スクエア",
+    "notes": "",
+    "createdAt": 1793019706995,
+    "updatedAt": 1793019706995
+   }
+  ],
+  "school": {
+   "periods": {
+    "1": {
+     "start": 540,
+     "end": 630
+    },
+    "2": {
+     "start": 645,
+     "end": 735
+    },
+    "3": {
+     "start": 795,
+     "end": 885
+    },
+    "4": {
+     "start": 900,
+     "end": 990
+    },
+    "5": {
+     "start": 1005,
+     "end": 1095
+    },
+    "6": {
+     "start": 1110,
+     "end": 1200
+    }
+   },
+   "terms": [
+    {
+     "id": "394caa0c-05f9-4508-a248-daa280618fbc",
+     "label": "2026 秋学期",
+     "start": "2026-09-01",
+     "end": "2027-01-31",
+     "courses": [
+      {
+       "id": "c1",
+       "name": "統計学",
+       "day": 1,
+       "period": 2,
+       "room": "201",
+       "teacher": "山田",
+       "credits": 2,
+       "required": true,
+       "creditStatus": "taking",
+       "notes": ""
+      }
+     ],
+     "quizzes": [
+      {
+       "id": "q1",
+       "courseId": "c1",
+       "title": "小テスト1",
+       "date": "2026-11-09",
+       "time": "",
+       "duration": 20,
+       "maxScore": 10,
+       "score": 8,
+       "notes": ""
+      }
+     ],
+     "createdAt": 1793019706995
+    }
+   ],
+   "archivedTerms": [],
+   "activeTermId": "394caa0c-05f9-4508-a248-daa280618fbc",
+   "creditTarget": 124,
+   "pastEarned": 0
+  },
+  "trpOverrides": {},
+  "todoItems": [],
+  "monthPlans": {},
+  "screenshotImports": []
+ },
+ "preferences": {
+  "appearance": "light",
+  "haptics": true,
+  "tracking": {
+   "startMinute": 420,
+   "endMinute": 1410,
+   "byDate": {}
+  },
+  "calendar": {
+   "zoom": 1,
+   "view": "two"
+  },
+  "live": {
+   "proAssistLevel": 2,
+   "timelineZoom": 1,
+   "warningMinutes": 60,
+   "soonSettingVersion": 2
+  },
+  "notifications": {
+   "enabled": false
+  },
+  "sound": {
+   "enabled": true,
+   "volume": 0.55
+  },
+  "cleanup": {
+   "autoDeleteYesterday": false,
+   "prunedThrough": null,
+   "lastRunAt": null
+  },
+  "today": {
+   "hideCompleted": false
+  },
+  "pro": {
+   "acaEnabled": false,
+   "astcEnabled": false,
+   "astcTomorrowCompare": true
+  },
+  "todayTime": {
+   "view": "auto",
+   "sidePanelVisible": true
+  },
+  "monthTime": {
+   "mode": "calendar",
+   "jobFilter": "all"
+  },
+  "screenshotCreators": {
+   "memory": []
+  }
+ },
+ "diagnostics": {
+  "lastSuccessfulSaveAt": 1793019706999,
+  "lastSaveError": null,
+  "lastBackupAt": null,
+  "lastMigrationAt": null
+ }
+}

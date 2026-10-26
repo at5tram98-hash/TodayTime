@@ -648,3 +648,6 @@ html.dragging, html.dragging * { cursor: grabbing; }
   .scroll > * { max-width: 680px; margin-left: auto; margin-right: auto; }
   .scroll > .section { margin-left: auto; margin-right: auto; }
 }
+.agenda .now-marker:last-child { height: 22px; }
+.agenda .now-marker:last-child::before { top: 10px; }
+.agenda .now-marker:last-child span { top: 2px; }
